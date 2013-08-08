@@ -1,102 +1,117 @@
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
 classdef query < handle
-   properties
-      array_;
-      func_;
+   properties(GetAccess = public, SetAccess = private)
+      array;
+      func;
    end
+   
    methods
-      function obj = query(array)
+      function self = query(array)
          
          if nargin == 0
             array = [];
          end
          
-         place(obj,array);
+         place(self,array);
          
       end
       
-      function arr = toList(obj)
-         arr = obj.array_;
+      function output = toList(self)
+         output = self.array;
       end
       
-      function place(obj,array)
-         obj.array_ = array;
+      function place(self,array)
+         self.array = array;
          if iscell(array)
-            obj.func_ = @cellfun;
+            self.func = @cellfun;
          elseif ismatrix(array)
-            obj.func_ = @arrayfun;
+            self.func = @arrayfun;
          end
       end
       
-      function output = where(obj, func, varargin)
-         inputs = {};
-         val = obj.func_(func, obj.array_, inputs{:}, 'UniformOutput', true);
-         obj.array_(~logical(val)) = [];
-         output = obj;
+      function output = where(self, func, varargin)
+         input = {};
+         val = self.func(func, self.array, input{:}, 'UniformOutput', true);
+         self.array(~logical(val)) = [];
+         output = self;
       end
       
-      function output = select(obj, func, varargin)
+      function output = select(self, func, varargin)
          % Apply function to each element of collection
          p = inputParser;
          p.KeepUnmatched= true;
-         p.FunctionName = 'query select method';
+         p.FunctionName = 'query select';
          % Intercept some parameters to override defaults
          p.addParamValue('nOutput',1,@islogical);
-         p.addParamValue('inputs',{},@iscell);
-         p.addParamValue('replicateInputs',true,@islogical);
+         p.addParamValue('input',{},@iscell);
+         p.addParamValue('replicateInput',true,@islogical);
          p.parse(varargin{:});
-         % Passed through to cellfun
+         
+         % Passed through to cellfun/arrayfun
          params = p.Unmatched;
          
-         nInputs = numel(p.Results.inputs);
+         nInput = numel(p.Results.input);
          
-         if nInputs == 0
-            inputs = {};
+         % 
+         
+         if nInput == 0
+            input = {};
          else
-            temp = p.Results.inputs;
-            [m,n] = size(obj.array_);
-            inputs = cell(1,nInputs);
-            if isequal(obj.func_,@arrayfun)
-               for j = 1:numel(temp)
-                  
-                  if p.Results.replicateInputs
-                     %if isscalar(temp{j})
-                        inputs{j} = repmat(temp{j},m,n);
-                     %else
-                     %   disp('how')
-                     %end
+            temp = p.Results.input;
+            [m,n] = size(self.array);
+            input = cell(1,nInput); % wrapper for additional inputs to func
+            if isequal(self.func,@arrayfun)
+               for j = 1:nInput
+                  if p.Results.replicateInput
+                     input{j} = repmat(temp{j},m,n);
+                     if any([m,n] ~= size(input{j}))
+                        error('query:select:InputFormat',...
+                           'Input dimensions incorrect. Did you want to set replicateInput false?');
+                     end
                   elseif all([m,n] == size(temp{j}))
-                     inputs{j} = temp{j};
-                     
+                     input{j} = temp{j};
                   else
-                     
-%                   if all([m,n] == size(temp{j}))
-%                      inputs{j} = temp{j};
-%                   elseif isscalar(temp{j})
-%                      inputs{j} = repmat(temp{j},m,n);
-%                   else
-                     error('');
+                     error('query:select:InputFormat',...
+                        'Input dimensions must conform to arrayfun');
                   end
                end
-            elseif isequal(obj.func_,@cellfun)
-               for j = 1:numel(temp)
-%                   if all([m,n] == size(temp{j}))
-%                      inputs{j} = temp{j};
-%                   elseif isscalar(temp{j})
-                     inputs{j} = repmat(temp(j),m,n);
-%                   else
-%                      error('');
-%                   end
+            elseif isequal(self.func,@cellfun)
+               % Additional inputs must be cell arrays
+               for j = 1:nInput
+                  if p.Results.replicateInput
+                     input{j} = repmat(temp(j),m,n);
+                     if any([m,n] ~= size(input{j}))
+                        error('query:select:InputFormat',...
+                           'Input dimensions incorrect. Did you want to set replicateInput false?');
+                     end
+                  elseif all([m,n] == size(temp{j}))
+                     input{j} = temp{j};
+                  else
+                     keyboard
+                     error('query:select:InputFormat',...
+                        'Input dimensions must conform to cellfun');
+                  end
                end
             else
-               error('unknown function handle');
+               error('query:select:InputFormat',...
+                  'Unknown function handle');
             end
          end
+         %keyboard
+         if isequal(self.func,@arrayfun)
+            try
+               temp = self.func(func,self.array,input{:},'UniformOutput',true);
+            catch
+               temp = self.func(func,self.array,input{:},'UniformOutput',false);
+            end
+         else
+            temp = self.func(func,self.array,input{:},'UniformOutput',false);
+         end
          % Overwrites data attached to calling handle
-         obj.place(obj.func_(func, obj.array_, inputs{:}, 'UniformOutput', false));
+         self.place(temp);
          % Handle can be passed back as output. Allows chaining method
-         % calls, eg. obj.select(<expression>).select(<expression>)
-         output = obj;
+         % calls, eg. self.select(<expression>).select(<expression>)
+         output = self;
       end
             
    end
