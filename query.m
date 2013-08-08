@@ -43,10 +43,12 @@ classdef query < handle
          output = self;
       end
       
-      
       function output = select(self, func, varargin)
          % Apply function to each element of collection
-         validParams = {'UniformOutput' 'uni' 'ErrorHandler'};
+         
+         % Pull out expected name/value parameter pairs. Everything else is
+         % treated as an input to cell/arrayfun
+         validParams = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
          count = 1;
          toRemove = [];
          var = {};
@@ -71,21 +73,20 @@ classdef query < handle
          p.addRequired('func',@(x) isa(x,'function_handle') );
          % Intercept some parameters to override defaults
 %         p.addParamValue('nOutput',1,@islogical);
-         p.addParamValue('UniformOutput',false,@islogical)
+         p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,var{:});
          
          [m,n] = size(self.array);
          input = query.formatInput(self.func,m,n,varargin,p.Results.replicateInput);
 
-         if isequal(self.func,@arrayfun)
-            try
-               temp = self.func(func,self.array,input{:},'UniformOutput',true);
-            catch
+         try
+            temp = self.func(func,self.array,input{:},'UniformOutput',p.Results.UniformOutput);
+         catch
+            if p.Results.UniformOutput
                temp = self.func(func,self.array,input{:},'UniformOutput',false);
+               warning('query:select','UniformOutput set false');
             end
-         else
-            temp = self.func(func,self.array,input{:},'UniformOutput',false);
          end
          % Overwrite data attached to calling handle
          self.place(temp);
@@ -93,7 +94,17 @@ classdef query < handle
          % calls, eg. self.method(<expression>).select(<expression>)
          output = self;
       end
-            
+      
+      function output = selectMany(self, func, varargin)
+         % This only works with arrays
+         if ~isequal(self.func,@arrayfun)
+            error('Cells dont make sense');
+         end
+         array = self.array;
+         select(self,func,varargin{:});
+         
+         % child (force uniformOutput)
+      end
    end
    
    methods(Static)
@@ -138,7 +149,6 @@ classdef query < handle
                   elseif all([m,n] == size(input{j}))
                      fInput{j} = input{j};
                   else
-                     keyboard
                      error('query:select:InputFormat',...
                         'Input dimensions must conform to cellfun');
                   end
