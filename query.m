@@ -36,25 +36,6 @@ classdef query < handle
       end
       
       function output = where(self, func, varargin)
-%          % Apply function to each element of collection
-%          p = inputParser;
-%          p.KeepUnmatched= true;
-%          p.FunctionName = 'query select';
-%          % Intercept some parameters to override defaults
-% %         p.addParamValue('nOutput',1,@islogical);
-%          p.addParamValue('input',{},@iscell);
-%          p.addParamValue('replicateInput',true,@islogical);
-%          p.parse(varargin{:});
-%          % Passed through to cellfun/arrayfun
-%          params = p.Unmatched;
-%          
-%          [m,n] = size(self.array);
-%          input = query.formatInput(self.func,m,n,p.Results.input,p.Results.replicateInput);
-% 
-%          val = self.func(func, self.array, input{:}, 'UniformOutput', true);
-%          self.array(~logical(val)) = [];
-%          output = self;
-         %keyboard
          array = self.array;
          select(self,func,varargin{:});
          array(~logical(self.toList)) = [];
@@ -65,19 +46,37 @@ classdef query < handle
       
       function output = select(self, func, varargin)
          % Apply function to each element of collection
+         validParams = {'UniformOutput' 'uni' 'ErrorHandler'};
+         count = 1;
+         toRemove = [];
+         var = {};
+         for i = 1:length(validParams)
+            ind = find(strcmpi(validParams{i},varargin));
+            if ind
+               if ind ~= length(varargin)
+                  var{count} = varargin{ind};
+                  var{count+1} = varargin{ind+1};
+                  count = count + 2;
+                  toRemove = [toRemove , ind , ind + 1];
+               else
+                  error('cannot be last');
+               end
+            end
+         end
+         varargin(toRemove) = [];
+         
          p = inputParser;
-         p.KeepUnmatched= true;
          p.FunctionName = 'query select';
+         p.addRequired('self',@(x) isa(x,'query') );
+         p.addRequired('func',@(x) isa(x,'function_handle') );
          % Intercept some parameters to override defaults
 %         p.addParamValue('nOutput',1,@islogical);
-         p.addParamValue('input',{},@iscell);
-         p.addParamValue('replicateInput',true,@islogical);
-         p.parse(varargin{:});
-         % Passed through to cellfun/arrayfun
-         params = p.Unmatched;
+         p.addParamValue('UniformOutput',false,@islogical)
+         p.addParamValue('replicateInput',false,@islogical);
+         p.parse(self,func,var{:});
          
          [m,n] = size(self.array);
-         input = query.formatInput(self.func,m,n,p.Results.input,p.Results.replicateInput);
+         input = query.formatInput(self.func,m,n,varargin,p.Results.replicateInput);
 
          if isequal(self.func,@arrayfun)
             try
