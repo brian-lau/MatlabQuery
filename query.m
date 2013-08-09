@@ -5,6 +5,9 @@ classdef query < handle
       array;
       func;
    end
+   properties(GetAccess = public, SetAccess = private, Dependent = true)
+      count
+   end
    
    methods
       function self = query(array)
@@ -35,6 +38,15 @@ classdef query < handle
          output = self.array;
       end
       
+      %% Get Functions
+      function count = get.count(self)
+         if isempty(self.array)
+            count = [];
+         else
+            count = numel(self.array);
+         end
+      end
+      
       function output = where(self, func, varargin)
          array = self.array;
          select(self,func,varargin{:});
@@ -45,27 +57,10 @@ classdef query < handle
       
       function output = select(self, func, varargin)
          % Apply function to each element of collection
-         
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
-         validParams = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
-         count = 1;
-         toRemove = [];
-         var = {};
-         for i = 1:length(validParams)
-            ind = find(strcmpi(validParams{i},varargin));
-            if ind
-               if ind ~= length(varargin)
-                  var{count} = varargin{ind};
-                  var{count+1} = varargin{ind+1};
-                  count = count + 2;
-                  toRemove = [toRemove , ind , ind + 1];
-               else
-                  error('cannot be last');
-               end
-            end
-         end
-         varargin(toRemove) = [];
+         params = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
+         [toParser,input] = query.interceptParams(params,varargin);
          
          p = inputParser;
          p.FunctionName = 'query select';
@@ -75,10 +70,10 @@ classdef query < handle
 %         p.addParamValue('nOutput',1,@islogical);
          p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
-         p.parse(self,func,var{:});
+         p.parse(self,func,toParser{:});
          
          [m,n] = size(self.array);
-         input = query.formatInput(self.func,m,n,varargin,p.Results.replicateInput);
+         input = query.formatInput(self.func,m,n,input,p.Results.replicateInput);
 
          try
             temp = self.func(func,self.array,input{:},'UniformOutput',p.Results.UniformOutput);
@@ -100,10 +95,42 @@ classdef query < handle
          if ~isequal(self.func,@arrayfun)
             error('Cells dont make sense');
          end
-         array = self.array;
-         select(self,func,varargin{:});
          
-         % child (force uniformOutput)
+         params = {'new'};
+         [toParser,input] = query.interceptParams(params,varargin);
+
+         p = inputParser;
+         p.FunctionName = 'query select';
+         p.addRequired('self',@(x) isa(x,'query') );
+         p.addRequired('func',@(x) isa(x,'function_handle') );
+         p.addParamValue('new',[],@(x) iscell(x)  );
+         p.addParamValue('UniformOutput',true,@islogical)
+         p.addParamValue('replicateInput',false,@islogical);
+         p.parse(self,func,toParser{:});
+
+         [m,n] = size(self.array);
+         input = query.formatInput(self.func,m,n,input,p.Results.replicateInput);
+
+         if isempty(p.Results.new)
+            child = query(self.array).select(func,input{:},'UniformOutput',false);
+            % TODO how to flatten for arrays???
+            % Flatten 
+            self.place(deCell(child.toList));
+            output = self;
+            return
+         else
+            keyboard
+            % child (force uniformOutput)
+            child = query(self.array).select(func,input{:},'UniformOutput',p.Results.UniformOutput);
+            child.place(deCell(child.toList));
+            child.select(p.Results.new{4},'UniformOutput',false);
+            
+            parent = query(self.array).select(p.Results.new{2},'UniformOutput',false);
+            
+%             array = self.array;
+%             select(self,func,varargin{:});
+            
+         end
       end
    end
    
@@ -158,6 +185,30 @@ classdef query < handle
                   'Unknown function handle');
             end
          end
+      end
+      
+      function [a,b] = interceptParams(params,list)
+         % Pull out expected name/value parameter pairs. Everything else is
+         % treated as an input to cell/arrayfun
+         %params = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
+         count = 1;
+         toRemove = [];
+         a = {};
+         for i = 1:length(params)
+            ind = find(strcmpi(params{i},list));
+            if ind
+               if ind ~= length(list)
+                  a{count} = list{ind};
+                  a{count+1} = list{ind+1};
+                  count = count + 2;
+                  toRemove = [toRemove , ind , ind + 1];
+               else
+                  error('cannot be last');
+               end
+            end
+         end
+         list(toRemove) = [];
+         b = list;
       end
    end
 end
