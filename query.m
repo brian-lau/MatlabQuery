@@ -56,6 +56,13 @@ classdef query < handle
       end
       
       function output = select(self, func, varargin)
+         
+         if strcmp(func,'new')
+            %keyboard
+            output = select_new(self,varargin{:});
+            return
+         end
+         
          % Apply function to each element of collection
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
@@ -66,15 +73,14 @@ classdef query < handle
          p.FunctionName = 'query select';
          p.addRequired('self',@(x) isa(x,'query') );
          p.addRequired('func',@(x) isa(x,'function_handle') );
-         % Intercept some parameters to override defaults
-%         p.addParamValue('nOutput',1,@islogical);
+         %p.addParamValue('new',[],@(x) iscell(x)  ); % TODO better validator
          p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
          
          [m,n] = size(self.array);
          input = query.formatInput(self.func,m,n,input,p.Results.replicateInput);
-
+         
          try
             temp = self.func(func,self.array,input{:},'UniformOutput',p.Results.UniformOutput);
          catch
@@ -90,10 +96,11 @@ classdef query < handle
          output = self;
       end
       
-      function output = selectMany(self, func, varargin)
+      function output = selectMany(self,func,varargin)
          % This only works with arrays
          if ~isequal(self.func,@arrayfun)
-            error('Cells dont make sense');
+            error('query:selectMany:InputFormat',...
+               'SelectMany does not work for cell arrays');
          end
          
          params = {'new'};
@@ -103,8 +110,8 @@ classdef query < handle
          p.FunctionName = 'query select';
          p.addRequired('self',@(x) isa(x,'query') );
          p.addRequired('func',@(x) isa(x,'function_handle') );
-         p.addParamValue('new',[],@(x) iscell(x)  );
-         p.addParamValue('UniformOutput',true,@islogical)
+         p.addParamValue('new',[],@(x) iscell(x)  ); % TODO better validator
+         %p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
 
@@ -118,14 +125,12 @@ classdef query < handle
             self.place(deCell(child.toList));
             output = self;
             return
-         else
-            
-            %query(patient).selectMany(@(x) x.test,'new',{'name' @(x) x.name 'test' @(y) y})
-            % how to handle transformations on 'new' that require inputs!!!???
-            child = query(self.array).select(func,input{:},'UniformOutput',p.Results.UniformOutput);
-            %child.place(deCell(child.toList));
-            %child.select(p.Results.new{4},'UniformOutput',false);
-            
+         else           
+            % I think it's best not to allow any additional inputs, since we can
+            % always chain a select call after the selectMany to operate on
+            % the new struct
+            %child = query(self.array).select(func,input{:},'UniformOutput',p.Results.UniformOutput);
+            child = query(self.array).select(func,input{:},'UniformOutput',false);
             parent = query(self.array).select(p.Results.new{2},'UniformOutput',false);
             
             parentField = p.Results.new{1};
@@ -148,9 +153,29 @@ classdef query < handle
       end
    end
    
+   methods(Access = private)
+      function output = select_new(self,params)
+         nFields = numel(params)/2;
+         fieldNames = params(1:2:end);
+         funcs = params(2:2:end);
+         for i = 1:nFields
+            q(i) = query(self.array).select(funcs{i},'UniformOutput',false);
+         end
+         
+         newArray(self.count) = struct();
+         for i = 1:self.count
+            for j = 1:nFields
+               newArray(i).(fieldNames{j}) = q(j).array{i};
+            end
+         end
+         self.place(newArray);
+         output = self;
+      end
+   end
+   
    methods(Static)
       function fInput = formatInput(func,m,n,input,replicateInput)
-         % static
+         % Format auxilliary inputs for cellfun or arrayfun
          %
          % func - @arrayfun or @cellfun
          % m - # row elements to format inputs according to
@@ -195,7 +220,7 @@ classdef query < handle
                   end
                end
             else
-               error('query:select:InputFormat',...
+               error('query:formatInput:InputFormat',...
                   'Unknown function handle');
             end
          end
@@ -217,7 +242,8 @@ classdef query < handle
                   count = count + 2;
                   toRemove = [toRemove , ind , ind + 1];
                else
-                  error('cannot be last');
+                  error('query:interceptParams:InputFormat',...
+                     'Name missing param');
                end
             end
          end
