@@ -119,17 +119,31 @@ classdef query < handle
             output = self;
             return
          else
-            keyboard
-            % child (force uniformOutput)
+            
+            %query(patient).selectMany(@(x) x.test,'new',{'name' @(x) x.name 'test' @(y) y})
+            % how to handle transformations on 'new' that require inputs!!!???
             child = query(self.array).select(func,input{:},'UniformOutput',p.Results.UniformOutput);
-            child.place(deCell(child.toList));
-            child.select(p.Results.new{4},'UniformOutput',false);
+            %child.place(deCell(child.toList));
+            %child.select(p.Results.new{4},'UniformOutput',false);
             
             parent = query(self.array).select(p.Results.new{2},'UniformOutput',false);
             
-%             array = self.array;
-%             select(self,func,varargin{:});
-            
+            parentField = p.Results.new{1};
+            childField = p.Results.new{3};
+            newArray(child.count) = struct(parentField,[],childField,[]);
+            count = 1;
+            for i = 1:parent.count
+               childSub = query(child.array{i})...
+                  .select(p.Results.new{4},'UniformOutput',false);
+               for j = 1:childSub.count
+                  newArray(count).(parentField) = parent.array{i};
+                  newArray(count).(childField) = childSub.array{j};
+                  count = count + 1;
+               end
+            end
+            self.place(newArray);
+            output = self;
+            return
          end
       end
    end
