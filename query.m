@@ -11,7 +11,6 @@ classdef query < handle
    
    methods
       function self = query(array)
-         
          if nargin == 0
             array = [];
          end
@@ -22,7 +21,6 @@ classdef query < handle
             error('query:contructor:InputFormat',...
                'Input must be a matrix or cell array');
          end
-         
       end
             
       function place(self,array)
@@ -34,36 +32,60 @@ classdef query < handle
          end
       end
       
-      function output = toList(self)
-         output = self.array;
-      end
-      
       %% Get Functions
       function count = get.count(self)
          if isempty(self.array)
-            count = [];
+            count = 0;
          else
             count = numel(self.array);
          end
       end
+
+      %% Conversion
+      function output = toList(self)
+         output = self.array;
+      end
       
-      function output = where(self, func, varargin)
+      function output = toDictionary(self,keyFunc,valFunc)
+         %http://msmvps.com/blogs/jon_skeet/archive/2011/01/02/reimplementing-linq-to-objects-todictionary.aspx
+         %http://geekswithblogs.net/BlackRabbitCoder/archive/2010/10/21/c.net-little-wonders-todictionary-and-tolist.aspx
+         keys = query(self.array).select(keyFunc,'UniformOutput',false).toList();
+         if nargin == 3
+            values = query(self.array).select(valFunc,'UniformOutput',false).toList();
+         else
+            values = self.select(@(x) x,'UniformOutput',false).toList();
+         end
+
+         output = containers.Map(keys,values);
+      end
+      
+      function output = ofType(self,typeName)
+         self.where(@(x) isa(x,typeName));
+         output = self;
+      end
+      
+      %% Restriction
+      function output = where(self,func,varargin)
          array = self.array;
          select(self,func,varargin{:});
          array(~logical(self.toList)) = [];
          place(self,array);
          output = self;
-      end
+      end      
       
-      function output = select(self, func, varargin)
+      %% Partition
+      
+      %% Projection
+      function output = select(self,func,varargin)
+         % Apply function to each element of collection
+         %
+         %
          
          if strcmp(func,'new')
-            %keyboard
             output = select_new(self,varargin{:});
             return
          end
          
-         % Apply function to each element of collection
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
          params = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
@@ -73,7 +95,6 @@ classdef query < handle
          p.FunctionName = 'query select';
          p.addRequired('self',@(x) isa(x,'query') );
          p.addRequired('func',@(x) isa(x,'function_handle') );
-         %p.addParamValue('new',[],@(x) iscell(x)  ); % TODO better validator
          p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
@@ -111,7 +132,6 @@ classdef query < handle
          p.addRequired('self',@(x) isa(x,'query') );
          p.addRequired('func',@(x) isa(x,'function_handle') );
          p.addParamValue('new',[],@(x) iscell(x)  ); % TODO better validator
-         %p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
 
@@ -151,6 +171,95 @@ classdef query < handle
             return
          end
       end
+      
+      %% Quantifiers
+      function [output,ind] = any(self,func)
+         %http://msmvps.com/blogs/jon_skeet/archive/2010/12/28/reimplementing-linq-to-objects-part-10-any-and-all.aspx
+         % TODO should this accept inputs like SELECT???
+         
+         if nargin == 1
+            if self.count
+               output = true;
+               ind = 1;
+            else
+               output = false;
+               ind = [];
+            end
+            return
+         end
+         
+         ind = 1;
+         output = false;
+         maxInd = self.count;
+         
+         if isequal(self.func,@arrayfun)
+            while ind <= maxInd
+               if func(self.array(ind))
+                  output = true;
+                  break;
+               end
+               ind = ind + 1;
+            end
+         else
+            while ind <= maxInd
+               if func(self.array{ind})
+                  output = true;
+                  break;
+               end
+               ind = ind + 1;
+            end
+         end
+         
+         if ~output
+            ind = [];
+         end
+      end
+      
+      function output = all(self,func)
+         ind = 1;
+         output = true;
+         maxInd = self.count;
+
+         if isequal(self.func,@arrayfun)
+            while ind <= maxInd
+               if ~func(self.array(ind))
+                  output = false;
+                  break;
+               end
+               ind = ind + 1;
+            end
+         else
+            while ind <= maxInd
+               if ~func(self.array{ind})
+                  output = false;
+                  break;
+               end
+               ind = ind + 1;
+            end
+         end
+      end
+
+      %% Ordering
+      function output = reverse(self)
+         self.array = self.array(end:-1:1);
+         output = self;
+      end
+      
+      function output = randomize(self,withReplacement)
+         
+         if nargin < 2
+            withReplacement = false;
+         end
+         
+         if withReplacement
+            self.array = self.array(randi(self.count,1,self.count));
+         else
+            self.array = self.array(randperm(self.count));
+         end
+         output = self.array;
+      end
+      
+      
    end
    
    methods(Access = private)
