@@ -2,8 +2,8 @@
 classdef query < handle
    
    properties(GetAccess = public, SetAccess = private)
-      array;
-      func;
+      array
+      func
    end
    properties(GetAccess = public, SetAccess = private, Dependent = true)
       count
@@ -61,6 +61,15 @@ classdef query < handle
       
       function output = ofType(self,typeName)
          self.where(@(x) isa(x,typeName));
+         output = self;
+      end
+      
+      function output = sort(self)
+         if ~ismethod(self.array,'sort')
+            error(sprintf('Sort method does not exist for class %s',class(self.array)));
+         end
+         
+         self.array = sort(self.array);
          output = self;
       end
       
@@ -149,7 +158,8 @@ classdef query < handle
             % I think it's best not to allow any additional inputs, since we can
             % always chain a select call after the selectMany to operate on
             % the new struct
-            %child = query(self.array).select(func,input{:},'UniformOutput',p.Results.UniformOutput);
+            % flatten & unflatten may be useful here
+            % http://apageofinsanity.wordpress.com/2012/02/22/functional-implementation-of-flatten/
             child = query(self.array).select(func,input{:},'UniformOutput',false);
             parent = query(self.array).select(p.Results.new{2},'UniformOutput',false);
             
@@ -174,6 +184,7 @@ classdef query < handle
       
       %% Quantifiers
       function [output,ind] = any(self,func)
+         % Determine whether any the array elements satisfy a condition
          %http://msmvps.com/blogs/jon_skeet/archive/2010/12/28/reimplementing-linq-to-objects-part-10-any-and-all.aspx
          % TODO should this accept inputs like SELECT???
          
@@ -216,6 +227,7 @@ classdef query < handle
       end
       
       function output = all(self,func)
+         % Determine whether all the array elements satisfy a condition
          ind = 1;
          output = true;
          maxInd = self.count;
@@ -264,6 +276,13 @@ classdef query < handle
    
    methods(Access = private)
       function output = select_new(self,params)
+         % Mimic Linq 'select new' behavior using struct as an anonymous
+         % type.
+         %
+         % params - cell array of name/value pairs
+         %
+         % TODO better input format checking
+         %
          nFields = numel(params)/2;
          fieldNames = params(1:2:end);
          funcs = params(2:2:end);
