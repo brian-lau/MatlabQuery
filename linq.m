@@ -110,6 +110,25 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       end
       
       function output = ofType(self,typeName)
+         % Return elements matching type
+         %
+         % INPUT
+         % typeName - string name of type, also works for any MATLAB or
+         %            Java class
+         %
+         % OUTPUT
+         % output   - linq object
+         % 
+         % EXAMPLES
+         % c = {1 'a' {'b'} int64(2) struct('name',3)};
+         % linq(c).ofType('struct').toArray
+         % linq(c).ofType('int64').toArray
+         % linq(c).ofType('numeric').toList
+         % linq(c).ofType('cell')
+         % 
+         % SEE ALSO
+         % isa
+         %
          self.where(@(x) isa(x,typeName));
          output = self;
       end
@@ -463,7 +482,11 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                            'Input dimensions incorrect. Did you want to set replicateInput false?');
                      end
                   elseif all([m,n] == size(input{j}))
-                     fInput{j} = input{j};
+                     if isnumeric(input{j})
+                        fInput{j} = num2cell(input{j});
+                     else
+                        fInput{j} = input{j};
+                     end
                   else
                      error('linq:select:InputFormat',...
                         'Input dimensions must conform to cellfun');
