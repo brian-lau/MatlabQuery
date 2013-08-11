@@ -1,7 +1,7 @@
 % TODO 
 % multidimensional arrays?
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
-classdef linq < handle
+classdef(CaseInsensitiveProperties = true) linq < handle
    
    properties(GetAccess = public, SetAccess = private)
       array
@@ -12,6 +12,7 @@ classdef linq < handle
    end
    
    methods
+      %% Constructor
       function self = linq(array)
          if nargin == 0
             array = [];
@@ -26,6 +27,8 @@ classdef linq < handle
       end
             
       function place(self,array)
+         % Place an array into linq object
+         % 
          self.array = array;
          if iscell(array)
             self.func = @cellfun;
@@ -44,11 +47,56 @@ classdef linq < handle
       end
 
       %% Conversion
+      function output = toArray(self)
+         % Return array as a matrix
+         %
+         
+         if iscell(self.array)
+            output = cell2mat(self.array);
+         elseif ismatrix(self.array)
+            output = self.array;
+         else
+            error('Cannot convert to matrix');
+         end
+      end
+       
       function output = toList(self)
-         output = self.array;
+         % Return array as a cell array
+         %
+         
+         if iscell(self.array)
+            output = self.array;
+         else
+            output = num2cell(self.array);
+         end
       end
       
       function output = toDictionary(self,keyFunc,valFunc)
+         % Create a dictionary
+         %
+         % INPUTS
+         % keyFunc - function handle selecting keys
+         %
+         % OPTIONAL
+         % valFunc - function handle selecting values
+         %
+         % EXAMPLES
+         % s(1) = struct('customer','george','purchases',[]);
+         % s(1).purchases = struct('item','wrench','cost',55);
+         % s(1).purchases(2) = struct('item','coat','cost',25);
+         % s(2) = struct('customer','frank','purchases',[]);
+         % s(2).purchases = struct('item','steak','cost',15);
+         % s(2).purchases(2) = struct('item','dog','cost',250);
+         % s(2).purchases(3) = struct('item','flowers','cost',50);
+         %
+         % % Dictionary of purchases keyed by customer
+         % d1 = linq(s).toDictionary(@(x) x.customer,@(x) x.purchases)
+         % % Dictionary of items and costs keyed by item
+         % d2 = linq([s.purchases]).toDictionary(@(x) x.item,@(x) x.cost)
+         %
+         % SEE ALSO
+         % containers.Map
+         %
          %http://msmvps.com/blogs/jon_skeet/archive/2011/01/02/reimplementing-linq-to-objects-todictionary.aspx
          %http://geekswithblogs.net/BlackRabbitCoder/archive/2010/10/21/c.net-little-wonders-todictionary-and-tolist.aspx
          keys = linq(self.array).select(keyFunc,'UniformOutput',false).toList();
@@ -77,19 +125,77 @@ classdef linq < handle
       
       %% Restriction
       function output = where(self,func,varargin)
+         % Returns elements for which the predicate function returns true
+         %
+         % INPUTS
+         % func   - function handle defining predicate
+         %
+         % OUTPUT
+         % output - linq object
+         %
+         % OPTIONAL
+         % Extra arguments can be passed in as for linq.select
+         %
+         % EXAMPLES
+         % % numbers from 1 to 10 greater than 5
+         % linq(1:10).where(@(x) x > 5).toArray
+         % % passing arguments to predicate
+         % linq(1:10).where(@(x,y) x == y,(10:-1:1)-1).toArray
+         %
+         % c = {'a' 1 'b' 'c' 4};
+         % linq(c).where(@ischar).toList
+         %
+         % s(1) = struct('customer','george','purchases',[]);
+         % s(1).purchases = struct('item','wrench','cost',55);
+         % s(1).purchases(2) = struct('item','coat','cost',25);
+         % s(2) = struct('customer','frank','purchases',[]);
+         % s(2).purchases = struct('item','steak','cost',15);
+         % s(2).purchases(2) = struct('item','dog','cost',250);
+         % s(2).purchases(3) = struct('item','flowers','cost',50);
+         %
+         % linq(s).where(@(x) any([x.purchases.cost] > 200)).toArray
+         % linq(s).where(@(x) any(strcmp({x.purchases.item},'wrench'))).toArray
+         % 
+         % SEE ALSO
+         % select
+         %
          array = self.array;
-         select(self,func,varargin{:});
-         array(~logical(self.toList)) = [];
-         place(self,array);
-         output = self;
+         ind = self.select(func,varargin{:}).toArray();
+         if islogical(ind)
+            array(~ind) = [];
+            place(self,array);
+            output = self;
+         else
+            func = functions(func);
+            error('linq:where:InputFormat',...
+               sprintf('%s does not return logical outputs.',func.function));
+         end
       end      
       
       %% Partition
       
       %% Projection
       function output = select(self,func,varargin)
-         % Apply function to each element of collection
+         % Returns the results of evaluating the selector function for each 
+         % matrix element
          %
+         % INPUTS
+         % func
+         %
+         % OPTIONAL
+         % 
+         %
+         % OUTPUT
+         % output - linq object
+         %
+         % EXAMPLES
+         % x = 1:10;
+         % q = linq(x);
+         % % square even numbers in x
+         % q.where(@iseven).select(@(x) x^2).toArray()
+         %
+         % SEE ALSO
+         % selectMany, arrayfun, cellfun
          %
          
          if strcmp(func,'new')
@@ -129,6 +235,8 @@ classdef linq < handle
       end
       
       function output = selectMany(self,func,varargin)
+         % 
+         %
          % This only works with arrays
          if ~isequal(self.func,@arrayfun)
             error('linq:selectMany:InputFormat',...
@@ -152,6 +260,8 @@ classdef linq < handle
          if isempty(p.Results.new)
             child = linq(self.array).select(func,input{:},'UniformOutput',false);
             % TODO how to flatten for arrays???
+            % child.all(@isrow)?
+            % how to know how deep to flatten??
             % Flatten 
             self.place(deCell(child.toList));
             output = self;
@@ -162,6 +272,7 @@ classdef linq < handle
             % the new struct
             % flatten & unflatten may be useful here
             % http://apageofinsanity.wordpress.com/2012/02/22/functional-implementation-of-flatten/
+            %keyboard
             child = linq(self.array).select(func,input{:},'UniformOutput',false);
             parent = linq(self.array).select(p.Results.new{2},'UniformOutput',false);
             
@@ -255,12 +366,21 @@ classdef linq < handle
 
       %% Ordering
       function output = reverse(self)
+         % Reverse ordering of matrix elements
+         %
+         % TODO
+         % Issue warning or error if ~isvector(array)
          self.array = self.array(end:-1:1);
          output = self;
       end
       
       function output = randomize(self,withReplacement)
-         
+         % Randomize ordering of matrix elements with or without replacement
+         % 
+         % OPTIONAL
+         % withReplacement - bool indicating whether to sample with
+         %                   replacement (default false)
+         % 
          if nargin < 2
             withReplacement = false;
          end
