@@ -1,5 +1,7 @@
+% TODO 
+% multidimensional arrays?
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
-classdef query < handle
+classdef linq < handle
    
    properties(GetAccess = public, SetAccess = private)
       array
@@ -10,7 +12,7 @@ classdef query < handle
    end
    
    methods
-      function self = query(array)
+      function self = linq(array)
          if nargin == 0
             array = [];
          end
@@ -18,7 +20,7 @@ classdef query < handle
          if ismatrix(array) || iscell(array)
             place(self,array);
          else
-            error('query:contructor:InputFormat',...
+            error('linq:contructor:InputFormat',...
                'Input must be a matrix or cell array');
          end
       end
@@ -49,9 +51,9 @@ classdef query < handle
       function output = toDictionary(self,keyFunc,valFunc)
          %http://msmvps.com/blogs/jon_skeet/archive/2011/01/02/reimplementing-linq-to-objects-todictionary.aspx
          %http://geekswithblogs.net/BlackRabbitCoder/archive/2010/10/21/c.net-little-wonders-todictionary-and-tolist.aspx
-         keys = query(self.array).select(keyFunc,'UniformOutput',false).toList();
+         keys = linq(self.array).select(keyFunc,'UniformOutput',false).toList();
          if nargin == 3
-            values = query(self.array).select(valFunc,'UniformOutput',false).toList();
+            values = linq(self.array).select(valFunc,'UniformOutput',false).toList();
          else
             values = self.select(@(x) x,'UniformOutput',false).toList();
          end
@@ -98,25 +100,25 @@ classdef query < handle
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
          params = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
-         [toParser,input] = query.interceptParams(params,varargin);
+         [toParser,input] = linq.interceptParams(params,varargin);
          
          p = inputParser;
-         p.FunctionName = 'query select';
-         p.addRequired('self',@(x) isa(x,'query') );
+         p.FunctionName = 'linq select';
+         p.addRequired('self',@(x) isa(x,'linq') );
          p.addRequired('func',@(x) isa(x,'function_handle') );
          p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
          
          [m,n] = size(self.array);
-         input = query.formatInput(self.func,m,n,input,p.Results.replicateInput);
+         input = linq.formatInput(self.func,m,n,input,p.Results.replicateInput);
          
          try
             temp = self.func(func,self.array,input{:},'UniformOutput',p.Results.UniformOutput);
          catch
             if p.Results.UniformOutput
                temp = self.func(func,self.array,input{:},'UniformOutput',false);
-               warning('query:select','UniformOutput set false');
+               warning('linq:select','UniformOutput set false');
             end
          end
          % Overwrite data attached to calling handle
@@ -129,26 +131,26 @@ classdef query < handle
       function output = selectMany(self,func,varargin)
          % This only works with arrays
          if ~isequal(self.func,@arrayfun)
-            error('query:selectMany:InputFormat',...
+            error('linq:selectMany:InputFormat',...
                'SelectMany does not work for cell arrays');
          end
          
          params = {'new'};
-         [toParser,input] = query.interceptParams(params,varargin);
+         [toParser,input] = linq.interceptParams(params,varargin);
 
          p = inputParser;
-         p.FunctionName = 'query select';
-         p.addRequired('self',@(x) isa(x,'query') );
+         p.FunctionName = 'linq selectMany';
+         p.addRequired('self',@(x) isa(x,'linq') );
          p.addRequired('func',@(x) isa(x,'function_handle') );
          p.addParamValue('new',[],@(x) iscell(x)  ); % TODO better validator
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
 
          [m,n] = size(self.array);
-         input = query.formatInput(self.func,m,n,input,p.Results.replicateInput);
+         input = linq.formatInput(self.func,m,n,input,p.Results.replicateInput);
 
          if isempty(p.Results.new)
-            child = query(self.array).select(func,input{:},'UniformOutput',false);
+            child = linq(self.array).select(func,input{:},'UniformOutput',false);
             % TODO how to flatten for arrays???
             % Flatten 
             self.place(deCell(child.toList));
@@ -160,15 +162,15 @@ classdef query < handle
             % the new struct
             % flatten & unflatten may be useful here
             % http://apageofinsanity.wordpress.com/2012/02/22/functional-implementation-of-flatten/
-            child = query(self.array).select(func,input{:},'UniformOutput',false);
-            parent = query(self.array).select(p.Results.new{2},'UniformOutput',false);
+            child = linq(self.array).select(func,input{:},'UniformOutput',false);
+            parent = linq(self.array).select(p.Results.new{2},'UniformOutput',false);
             
             parentField = p.Results.new{1};
             childField = p.Results.new{3};
             newArray(child.count) = struct(parentField,[],childField,[]);
             count = 1;
             for i = 1:parent.count
-               childSub = query(child.array{i})...
+               childSub = linq(child.array{i})...
                   .select(p.Results.new{4},'UniformOutput',false);
                for j = 1:childSub.count
                   newArray(count).(parentField) = parent.array{i};
@@ -287,7 +289,7 @@ classdef query < handle
          fieldNames = params(1:2:end);
          funcs = params(2:2:end);
          for i = 1:nFields
-            q(i) = query(self.array).select(funcs{i},'UniformOutput',false);
+            q(i) = linq(self.array).select(funcs{i},'UniformOutput',false);
          end
          
          newArray(self.count) = struct();
@@ -321,13 +323,13 @@ classdef query < handle
                   if replicateInput
                      fInput{j} = repmat(input{j},m,n);
                      if any([m,n] ~= size(fInput{j}))
-                        error('query:select:InputFormat',...
+                        error('linq:select:InputFormat',...
                            'Input dimensions incorrect. Did you want to set replicateInput false?');
                      end
                   elseif all([m,n] == size(input{j}))
                      fInput{j} = input{j};
                   else
-                     error('query:select:InputFormat',...
+                     error('linq:select:InputFormat',...
                         'Input dimensions must conform to arrayfun');
                   end
                end
@@ -337,18 +339,18 @@ classdef query < handle
                   if replicateInput
                      fInput{j} = repmat(input(j),m,n);
                      if any([m,n] ~= size(input{j}))
-                        error('query:select:InputFormat',...
+                        error('linq:select:InputFormat',...
                            'Input dimensions incorrect. Did you want to set replicateInput false?');
                      end
                   elseif all([m,n] == size(input{j}))
                      fInput{j} = input{j};
                   else
-                     error('query:select:InputFormat',...
+                     error('linq:select:InputFormat',...
                         'Input dimensions must conform to cellfun');
                   end
                end
             else
-               error('query:formatInput:InputFormat',...
+               error('linq:formatInput:InputFormat',...
                   'Unknown function handle');
             end
          end
@@ -370,7 +372,7 @@ classdef query < handle
                   count = count + 2;
                   toRemove = [toRemove , ind , ind + 1];
                else
-                  error('query:interceptParams:InputFormat',...
+                  error('linq:interceptParams:InputFormat',...
                      'Name missing param');
                end
             end
