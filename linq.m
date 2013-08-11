@@ -1,5 +1,6 @@
 % TODO 
 % multidimensional arrays?
+%http://msmvps.com/blogs/jon_skeet/archive/tags/Edulinq/default.aspx
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
 classdef(CaseInsensitiveProperties = true) linq < handle
    
@@ -178,8 +179,16 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % SEE ALSO
          % select
          %
+         if nargin < 2
+            error('linq:where:InputNumber','Predicate is required');
+         end
+         if self.count == 0
+            error('linq:where:InputFormat','Source matrix is empty');
+         end
+         
          array = self.array;
          ind = self.select(func,varargin{:}).toArray();
+
          if islogical(ind)
             array(~ind) = [];
             place(self,array);
@@ -217,6 +226,15 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % selectMany, arrayfun, cellfun
          %
          
+         if nargin < 2
+            error('linq:select:InputNumber','Predicate is required');
+         end
+         if self.count == 0
+            self.place([]);
+            output = self;
+            return
+         end
+         
          if strcmp(func,'new')
             output = select_new(self,varargin{:});
             return
@@ -237,7 +255,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          
          [m,n] = size(self.array);
          input = linq.formatInput(self.func,m,n,input,p.Results.replicateInput);
-         
+
          try
             temp = self.func(func,self.array,input{:},'UniformOutput',p.Results.UniformOutput);
          catch
