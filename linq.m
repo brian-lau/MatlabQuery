@@ -6,7 +6,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
    
    properties(GetAccess = public, SetAccess = private)
       array
-      func
+      func % hidden?
    end
    properties(GetAccess = public, SetAccess = private, Dependent = true)
       size
@@ -281,70 +281,77 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          output = self;
       end
       
-      function output = selectMany(self,func,varargin)
+      function output = selectMany(self,varargin)
          % 
          %
-         % This only works with arrays
+         % This only works with arrays WHY???
+         % TODO how to flatten for arrays???
          % Additional arguments are passed exclusively to func
          % resultFunc can be modified by chaining select
          %http://msmvps.com/blogs/jon_skeet/archive/2010/12/27/reimplementing-linq-to-objects-part-9-selectmany.aspx
-         if ~isequal(self.func,@arrayfun)
-            error('linq:selectMany:InputFormat',...
-               'SelectMany does not work for cell arrays');
-         end
+%          if ~isequal(self.func,@arrayfun)
+%             error('linq:selectMany:InputFormat',...
+%                'SelectMany does not work for cell arrays');
+%          end
          
-         %selectMany(self,func)
-         %selectMany(self,func,resultFunc)
+         %x selectMany(self,func)
+         %x selectMany(self,func,resultFunc)
+         %x selectMany(self,func,resultFunc,input)
          %selectMany(self,func,'new',{name func name2 func2})
          %selectMany(self,'new',{name func name2 func2})
-         
-         [resultFunc,list] = linq.interceptHandle(varargin);
-         params = {'new'};
-         [toParser,input] = linq.interceptParams(params,list);
+         if nargin < 2
+            error('linq:selectMany:InputNumber','At least one predicate is required');
+         end
 
+         [funcs,list] = linq.interceptHandle(varargin);
+         [toParser,input] = linq.interceptParams({'new'},list);
+         
          p = inputParser;
          p.FunctionName = 'linq selectMany';
          p.addRequired('self',@(x) isa(x,'linq') );
-         p.addRequired('func',@(x) isa(x,'function_handle') );
          p.addParamValue('new',[],@(x) iscell(x)  ); % TODO better validator
          p.addParamValue('replicateInput',false,@islogical);
-         p.parse(self,func,toParser{:});
+         p.parse(self,toParser{:});
 
          input = linq.formatInput(self.func,self.size(1),self.size(2),...
             input,p.Results.replicateInput);
 
+         if numel(funcs) > 2
+            warning('linq:selectMany:InputNumber',...
+               'Only first two function handles used.');
+         end
+         if numel(funcs) > 1
+            if nargin(funcs{2}) ~=2
+               error('Second function handle must accept two arguments');
+            end
+         elseif (numel(funcs) > 1) && ~isempty(p.Results.new)
+            warning('linq:selectMany:InputNumber',...
+               'Only first function handle used with ''new'' parameter.');
+         elseif (numel(funcs) == 0)
+            error('linq:selectMany:InputNumber','At least one predicate is required');
+         end
+
          if isempty(p.Results.new)
-%             child = linq(self.array).select(func,input{:},'UniformOutput',false);
-%             % TODO how to flatten for arrays???
-%             % child.all(@isrow)?
-%             % how to know how deep to flatten??
-%             % Flatten 
-%             self.place(deCell(child.toList));
-%             output = self;
-            
-            child = linq(self.array).select(func,input{:},'UniformOutput',false);
-            if ~isempty(resultFunc)
+            child = linq(self.array).select(funcs{1},input{:},'UniformOutput',false);
+            if length(funcs) > 1
                parentList = self.toList;
                for i = 1:self.count
                   childSub = child.array{i};
-                  temp{i} = cellfun(resultFunc{:},...
+                  if isnumeric(childSub)
+                     childSub = num2cell(childSub);
+                  end
+                  temp{i} = cellfun(funcs{2},...
                      repmat(parentList(i),size(childSub)),childSub,...
                      'UniformOutput',false);
                end
                self.place(deCell(temp));
             else
-               self.place(deCell(child.toList));
+               self.place(deArray(child.toList));
             end
             output = self;
             return
-         else           
-            % I think it's best not to allow any additional inputs, since we can
-            % always chain a select call after the selectMany to operate on
-            % the new struct
-            % flatten & unflatten may be useful here
-            % http://apageofinsanity.wordpress.com/2012/02/22/functional-implementation-of-flatten/
-            %keyboard
-            child = linq(self.array).select(func,input{:},'UniformOutput',false);
+         else
+            child = linq(self.array).select(funcs{1},input{:},'UniformOutput',false);
             parent = linq(self.array).select(p.Results.new{2},'UniformOutput',false);
             
             parentField = p.Results.new{1};
