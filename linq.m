@@ -9,7 +9,9 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       func
    end
    properties(GetAccess = public, SetAccess = private, Dependent = true)
+      size
       count
+      version
    end
    
    methods
@@ -39,6 +41,14 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       end
       
       %% Get Functions
+      function count = get.size(self)
+         if isempty(self.array)
+            count = [0 0];
+         else
+            count = size(self.array);
+         end
+      end
+      
       function count = get.count(self)
          if isempty(self.array)
             count = 0;
@@ -242,7 +252,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
-         params = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
+         params = {'UniformOutput' 'ErrorHandler' 'replicateInput'};
          [toParser,input] = linq.interceptParams(params,varargin);
          
          p = inputParser;
@@ -275,13 +285,22 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % 
          %
          % This only works with arrays
+         % Additional arguments are passed exclusively to func
+         % resultFunc can be modified by chaining select
+         %http://msmvps.com/blogs/jon_skeet/archive/2010/12/27/reimplementing-linq-to-objects-part-9-selectmany.aspx
          if ~isequal(self.func,@arrayfun)
             error('linq:selectMany:InputFormat',...
                'SelectMany does not work for cell arrays');
          end
          
+         %selectMany(self,func)
+         %selectMany(self,func,resultFunc)
+         %selectMany(self,func,'new',{name func name2 func2})
+         %selectMany(self,'new',{name func name2 func2})
+         
+         [resultFunc,list] = linq.interceptHandle(varargin);
          params = {'new'};
-         [toParser,input] = linq.interceptParams(params,varargin);
+         [toParser,input] = linq.interceptParams(params,list);
 
          p = inputParser;
          p.FunctionName = 'linq selectMany';
@@ -291,16 +310,31 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
 
-         [m,n] = size(self.array);
-         input = linq.formatInput(self.func,m,n,input,p.Results.replicateInput);
+         input = linq.formatInput(self.func,self.size(1),self.size(2),...
+            input,p.Results.replicateInput);
 
          if isempty(p.Results.new)
+%             child = linq(self.array).select(func,input{:},'UniformOutput',false);
+%             % TODO how to flatten for arrays???
+%             % child.all(@isrow)?
+%             % how to know how deep to flatten??
+%             % Flatten 
+%             self.place(deCell(child.toList));
+%             output = self;
+            
             child = linq(self.array).select(func,input{:},'UniformOutput',false);
-            % TODO how to flatten for arrays???
-            % child.all(@isrow)?
-            % how to know how deep to flatten??
-            % Flatten 
-            self.place(deCell(child.toList));
+            if ~isempty(resultFunc)
+               parentList = self.toList;
+               for i = 1:self.count
+                  childSub = child.array{i};
+                  temp{i} = cellfun(resultFunc{:},...
+                     repmat(parentList(i),size(childSub)),childSub,...
+                     'UniformOutput',false);
+               end
+               self.place(deCell(temp));
+            else
+               self.place(deCell(child.toList));
+            end
             output = self;
             return
          else           
@@ -429,8 +463,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
          output = self.array;
       end
-      
-      
    end
    
    methods(Access = private)
@@ -441,6 +473,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % params - cell array of name/value pairs
          %
          % TODO better input format checking
+         % why wouldn't you use selectMany for this???
          %
          nFields = numel(params)/2;
          fieldNames = params(1:2:end);
@@ -461,6 +494,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
    end
    
    methods(Static)
+      
       function fInput = formatInput(func,m,n,input,replicateInput)
          % Format auxilliary inputs for cellfun or arrayfun
          %
@@ -536,6 +570,21 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                   error('linq:interceptParams:InputFormat',...
                      'Name missing param');
                end
+            end
+         end
+         list(toRemove) = [];
+         b = list;
+      end
+      
+      function [a,b] = interceptHandle(list)
+         count = 1;
+         toRemove = [];
+         a = {};
+         for i = 1:length(list)
+            if isa(list{i},'function_handle')
+               a{count} = list{i};
+               count = count + 1;
+               toRemove = [toRemove , i];
             end
          end
          list(toRemove) = [];
