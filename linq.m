@@ -1,7 +1,13 @@
 % TODO 
 % multidimensional arrays?
+% should this be a value class?
 %http://msmvps.com/blogs/jon_skeet/archive/tags/Edulinq/default.aspx
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
+
+% clean up use of deCell & deArray
+% clean up input parsing and formatting, repeated input parsing in
+% select&selectMany (calls select!?)
+% fix try/catch in select to return somethign sensible when func bombs
 classdef(CaseInsensitiveProperties = true) linq < handle
    
    properties(GetAccess = public, SetAccess = private)
@@ -154,7 +160,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       end
       
       %% Restriction
-      function output = where(self,func,varargin)
+      function self = where(self,func,varargin)
          % Returns elements for which the predicate function returns true
          %
          % INPUTS
@@ -202,7 +208,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          if islogical(ind)
             array(~ind) = [];
             place(self,array);
-            output = self;
+            %output = self;
          else
             func = functions(func);
             error('linq:where:InputFormat',...
@@ -213,7 +219,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       %% Partition
       
       %% Projection
-      function output = select(self,func,varargin)
+      function self = select(self,func,varargin)
          % Returns the results of evaluating the selector function for each 
          % matrix element
          %
@@ -241,12 +247,13 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
          if self.count == 0
             self.place([]);
-            output = self;
+            %output = self;
             return
          end
          
          if strcmp(func,'new')
-            output = select_new(self,varargin{:});
+            %output = 
+            select_new(self,varargin{:});
             return
          end
          
@@ -263,8 +270,8 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          p.addParamValue('replicateInput',false,@islogical);
          p.parse(self,func,toParser{:});
          
-         [m,n] = size(self.array);
-         input = linq.formatInput(self.func,m,n,input,p.Results.replicateInput);
+         input = linq.formatInput(self.func,self.size(1),self.size(2),...
+            input,p.Results.replicateInput);
 
          try
             temp = self.func(func,self.array,input{:},'UniformOutput',p.Results.UniformOutput);
@@ -278,10 +285,11 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          self.place(temp);
          % Handle can be passed back as output. Allows chaining method
          % calls, eg. self.method(<expression>).select(<expression>)
-         output = self;
+         %output = self;
+         % HACK, just use self = fun(self)????
       end
       
-      function output = selectMany(self,varargin)
+      function self = selectMany(self,varargin)
          % 
          %
          % This only works with arrays WHY???
@@ -304,7 +312,8 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
 
          [funcs,list] = linq.interceptHandle(varargin);
-         [toParser,input] = linq.interceptParams({'new'},list);
+         [toParser,input] = linq.interceptParams(...
+            {'new' 'replicateInput'},list);
          
          p = inputParser;
          p.FunctionName = 'linq selectMany';
@@ -348,9 +357,10 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             else
                self.place(deArray(child.toList));
             end
-            output = self;
+            %output = self;
             return
          else
+            %         keyboard
             child = linq(self.array).select(funcs{1},input{:},'UniformOutput',false);
             parent = linq(self.array).select(p.Results.new{2},'UniformOutput',false);
             
@@ -361,6 +371,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             for i = 1:parent.count
                childSub = linq(child.array{i})...
                   .select(p.Results.new{4},'UniformOutput',false);
+               childSub.place(deArray(childSub.toList)) %%% HACK
                for j = 1:childSub.count
                   newArray(count).(parentField) = parent.array{i};
                   newArray(count).(childField) = childSub.array{j};
@@ -368,7 +379,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                end
             end
             self.place(newArray);
-            output = self;
+            %output = self;
             return
          end
       end
@@ -443,16 +454,16 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       end
 
       %% Ordering
-      function output = reverse(self)
+      function self = reverse(self)
          % Reverse ordering of matrix elements
          %
          % TODO
          % Issue warning or error if ~isvector(array)
          self.array = self.array(end:-1:1);
-         output = self;
+         %output = self;
       end
       
-      function output = randomize(self,withReplacement)
+      function self = randomize(self,withReplacement)
          % Randomize ordering of matrix elements with or without replacement
          % 
          % OPTIONAL
@@ -468,12 +479,12 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          else
             self.array = self.array(randperm(self.count));
          end
-         output = self.array;
+         %output = self.array;
       end
    end
    
    methods(Access = private)
-      function output = select_new(self,params)
+      function self = select_new(self,params)
          % Mimic Linq 'select new' behavior using struct as an anonymous
          % type.
          %
@@ -496,7 +507,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             end
          end
          self.place(newArray);
-         output = self;
+         %output = self;
       end
    end
    
@@ -520,10 +531,10 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                for j = 1:nInput
                   if replicateInput
                      fInput{j} = repmat(input{j},m,n);
-                     if any([m,n] ~= size(fInput{j}))
-                        error('linq:select:InputFormat',...
-                           'Input dimensions incorrect. Did you want to set replicateInput false?');
-                     end
+%                      if any([m,n] ~= size(fInput{j}))
+%                         error('linq:select:InputFormat',...
+%                            'Input dimensions incorrect. Did you want to set replicateInput false?');
+%                      end
                   elseif all([m,n] == size(input{j}))
                      fInput{j} = input{j};
                   else
