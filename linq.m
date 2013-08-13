@@ -3,7 +3,7 @@
 %   probably should force vector shape, see here:
 %   http://undocumentedmatlab.com/blog/setting-class-property-types/
 %   above not useful, but place now forces row format, perhaps should allow
-%   vectors?
+%   vectors? don't think so, since arrayfun/cellfun still bomb?
 % should this be a value class?
 %http://msmvps.com/blogs/jon_skeet/archive/tags/Edulinq/default.aspx
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
@@ -20,6 +20,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
    properties(GetAccess = public, SetAccess = private, Dependent = true)
       size
       count
+      StringsAreIterable % passed to flattest?
       version
    end
    
@@ -41,7 +42,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       function place(self,array)
          % Place an array into linq object
          % 
-         if ~isrow(array) && ~isempty(array)
+         if ~isvector(array) && ~isempty(array)
             array = array(:)';
          end
          self.array = array;
@@ -75,6 +76,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          %
          if iscell(self.array)
             output = cell2mat(self.array);
+            % TODO, this will bomb if nested cell arrays or objects
          elseif ismatrix(self.array)
             output = self.array;
          else
@@ -89,6 +91,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             output = self.array;
          else
             output = num2cell(self.array);
+            %StringsAreIterable?
          end
       end
       
@@ -156,7 +159,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       function self = sort(self)
          if ~ismethod(self.array,'sort')
             error('linq:sort:InputType',...
-               sprintf('Sort method does not exist for class %s',class(self.array)));
+               'Sort method does not exist for class %s',class(self.array));
          end
          
          self.array = sort(self.array);
@@ -209,7 +212,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          ind = self.select(func,varargin{:}).toArray();
          if numel(ind) ~= self.count
             error('linq:where:InputFormat',...
-               'Predicate does not return a scalar for each element of linq.array.');
+               'Predicate must return a scalar for each element of linq.array.');
          end
 
          if islogical(ind)
@@ -218,14 +221,14 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          else
             func = functions(func);
             error('linq:where:InputFormat',...
-               sprintf('%s does not return logical outputs.',func.function));
+               '%s does not return logical outputs.',func.function);
          end
       end      
       
       %% Partition
       
       %% Projection
-      function self = select(self,func,varargin)
+      function self = select(self,varargin)
          % Returns the results of evaluating the selector function for each 
          % matrix element
          %
@@ -254,108 +257,96 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             self.place([]);
             return
          end
-         if strcmp(func,'new')
-            select_new(self,varargin{:});
+         
+         names = {'new' 'UniformOutput' 'replicateInput'};
+         [func,funcArgs,p] = linq.checkArgs(varargin,names);
+         
+         if ~isempty(p.Results.new)
+            select_new(self,p.Results.new);
             return
          end
          
-         % Pull out expected name/value parameter pairs. Everything else is
-         % treated as an input to cell/arrayfun
-         params = {'UniformOutput' 'ErrorHandler' 'replicateInput'};
-         [toParser,input] = linq.interceptParams(params,varargin);
-         
-         p = inputParser;
-         p.FunctionName = 'linq select';
-         p.addRequired('self',@(x) isa(x,'linq') );
-         p.addRequired('func',@(x) isa(x,'function_handle') );
-         p.addParamValue('UniformOutput',true,@islogical)
-         p.addParamValue('replicateInput',false,@islogical);
-         p.parse(self,func,toParser{:});
-         
-         input = linq.formatInput(self.func,self.size(1),self.size(2),...
-            input,p.Results.replicateInput);
+         funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
+            funcArgs,p.Results.replicateInput);
 
          try
-            temp = self.func(func,self.array,input{:},'UniformOutput',p.Results.UniformOutput);
-         catch
-            if p.Results.UniformOutput
-               temp = self.func(func,self.array,input{:},'UniformOutput',false);
-               warning('linq:select','UniformOutput set false');
+            result = self.func(func{1},self.array,funcArgs{:},...
+               'UniformOutput',p.Results.UniformOutput);
+            self.place(result);
+         catch err
+            if strcmp(err.identifier,'MATLAB:arrayfun:NotAScalarOutput') ||...
+               strcmp(err.identifier,'MATLAB:cellfun:NotAScalarOutput')
+               if p.Results.UniformOutput
+                  result = self.func(func{1},self.array,funcArgs{:},...
+                     'UniformOutput',false);
+                  %warning('linq:select','UniformOutput set false');
+                  self.place(result);
+               end
+            else
+               rethrow(err);
             end
          end
-         self.place(temp);
       end
       
       function self = selectMany(self,varargin)
-         % 
+         % Always returns flat list (cell array) unless new is used
          %
          % This only works with arrays WHY???
          % TODO how to flatten for arrays???
          % Additional arguments are passed exclusively to func
          % resultFunc can be modified by chaining select
          %http://msmvps.com/blogs/jon_skeet/archive/2010/12/27/reimplementing-linq-to-objects-part-9-selectmany.aspx
-%          if ~isequal(self.func,@arrayfun)
-%             error('linq:selectMany:InputFormat',...
-%                'SelectMany does not work for cell arrays');
-%          end
          
          %x selectMany(self,func)
          %x selectMany(self,func,resultFunc)
          %x selectMany(self,func,resultFunc,input)
          %x selectMany(self,func,'new',{name func name2 func2})
-         %selectMany(self,'new',{name func name2 func2})
+         %selectMany(self,'new',{name func name2 func2}) NONSENSE?
          if nargin < 2
-            error('linq:selectMany:InputNumber','At least one predicate is required');
+            error('linq:selectMany:InputNumber',...
+               'At least one predicate is required');
          end
-
-         [funcs,list] = linq.interceptHandle(varargin);
-         [toParser,input] = linq.interceptParams(...
-            {'new' 'replicateInput'},list);
          
-         p = inputParser;
-         p.FunctionName = 'linq selectMany';
-         p.addRequired('self',@(x) isa(x,'linq') );
-         p.addParamValue('new',[],@(x) iscell(x)  ); % TODO better validator
-         p.addParamValue('replicateInput',false,@islogical);
-         p.parse(self,toParser{:});
+         names = {'new' 'replicateInput'};
+         [func,funcArgs,p] = linq.checkArgs(varargin,names);
 
-         input = linq.formatInput(self.func,self.size(1),self.size(2),...
-            input,p.Results.replicateInput);
-
-         if numel(funcs) > 2
+         if numel(func) > 2
             warning('linq:selectMany:InputNumber',...
                'Only first two function handles used.');
          end
-         if numel(funcs) > 1
-            if nargin(funcs{2}) ~=2
+         if numel(func) > 1
+            if nargin(func{2}) ~=2
                error('Second function handle must accept two arguments');
             end
-         elseif (numel(funcs) > 1) && ~isempty(p.Results.new)
+         elseif (numel(func) > 1) && ~isempty(p.Results.new)
             warning('linq:selectMany:InputNumber',...
                'Only first function handle used with ''new'' parameter.');
-         elseif (numel(funcs) == 0)
-            error('linq:selectMany:InputNumber','At least one predicate is required');
+         elseif numel(func) == 0
+            error('linq:selectMany:InputNumber',...
+               'At least one predicate is required');
          end
 
+         funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
+            funcArgs,p.Results.replicateInput);
+
          if isempty(p.Results.new)
-            child = linq(self.array).select(funcs{1},input{:},'UniformOutput',false);
-            if length(funcs) > 1
-               parentList = self.toList;
+            child = linq(self.array).select(func{1},funcArgs{:},'UniformOutput',false);
+            if length(func) > 1
+               % Evaluate second function using original array and output
+               % of first function as inputs
+               parentList = self.toList();
                for i = 1:self.count
-                  childSub = child.array{i};
-                  if isnumeric(childSub)
-                     childSub = num2cell(childSub);
-                  end
-                  temp{i} = cellfun(funcs{2},...
+                  childSub = flattest(child.array{i});%StringsAreIterable?
+                  temp{i} = cellfun(func{2},...
                      repmat(parentList(i),size(childSub)),childSub,...
                      'UniformOutput',false);
                end
                self.place(flatten(temp));
             else
-               self.place(deArray(child.toList));
+               self.place(flattest(child.toList())); %StringsAreIterable?
             end
          else
-            child = linq(self.array).select(funcs{1},input{:},'UniformOutput',false);
+            child = linq(self.array).select(func{1},funcArgs{:},'UniformOutput',false);
             parent = linq(self.array).select(p.Results.new{2},'UniformOutput',false);
             
             parentField = p.Results.new{1};
@@ -396,7 +387,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          ind = 1;
          output = false;
          maxInd = self.count;
-         
          if isequal(self.func,@arrayfun)
             while ind <= maxInd
                if func(self.array(ind))
@@ -426,7 +416,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          ind = 1;
          output = true;
          maxInd = self.count;
-
          if isequal(self.func,@arrayfun)
             while ind <= maxInd
                if ~func(self.array(ind))
@@ -504,6 +493,17 @@ classdef(CaseInsensitiveProperties = true) linq < handle
    
    methods(Static)
       
+      function [funcs,unnamedArgs,p] = checkArgs(args,names)
+         [namedArgs,unnamedArgs] = linq.interceptParams(names,args);
+         [funcs,unnamedArgs] = linq.interceptHandle(unnamedArgs);
+         
+         p = inputParser;
+         p.addParamValue('UniformOutput',true,@islogical)
+         p.addParamValue('replicateInput',false,@islogical);
+         p.addParamValue('new',{},@(x) iscell(x) && (rem(numel(x),2)==0) );
+         p.parse(namedArgs{:});
+      end
+      
       function fInput = formatInput(func,m,n,input,replicateInput)
          % Format auxilliary inputs for cellfun or arrayfun
          %
@@ -559,16 +559,16 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
       end
       
-      function [a,b] = interceptParams(params,list)
+      function [a,b] = interceptParams(names,list)
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
-         %params = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
+         %names = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
          %
          count = 1;
          toRemove = [];
          a = {};
-         for i = 1:length(params)
-            ind = find(strcmpi(params{i},list));
+         for i = 1:length(names)
+            ind = find(strcmpi(names{i},list));
             if ind
                if ind ~= length(list)
                   a{count} = list{ind};
