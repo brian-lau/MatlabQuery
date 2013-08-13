@@ -10,7 +10,7 @@
 
 % x clean up use of deCell & deArray
 % clean up input parsing and formatting, repeated input parsing in select&selectMany (calls select!?)
-% fix try/catch in select to return somethign sensible when func bombs
+% x fix try/catch in select to return somethign sensible when func bombs
 classdef(CaseInsensitiveProperties = true) linq < handle
    
    properties(GetAccess = public, SetAccess = private)
@@ -41,7 +41,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             
       function place(self,array)
          % Place an array into linq object
-         % 
          if ~isvector(array) && ~isempty(array)
             array = array(:)';
          end
@@ -73,20 +72,19 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       %% Conversion
       function output = toArray(self)
          % Return array as a matrix
-         %
          if iscell(self.array)
             output = cell2mat(self.array);
             % TODO, this will bomb if nested cell arrays or objects
          elseif ismatrix(self.array)
             output = self.array;
          else
-            error('linq:toArray:','Cannot convert to matrix');
+            error('linq:toArray:InputFormat',...
+               'Cannot convert to matrix');
          end
       end
        
       function output = toList(self)
          % Return array as a cell array
-         %
          if iscell(self.array)
             output = self.array;
          else
@@ -152,7 +150,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % 
          % SEE ALSO
          % isa
-         %
          self.where(@(x) isa(x,typeName));
       end
       
@@ -200,7 +197,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % 
          % SEE ALSO
          % select
-         %
          if nargin < 2
             error('linq:where:InputNumber','Predicate is required');
          end
@@ -249,7 +245,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          %
          % SEE ALSO
          % selectMany, arrayfun, cellfun
-         %
          if nargin < 2
             error('linq:select:InputNumber','Predicate is required');
          end
@@ -259,24 +254,24 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
          
          names = {'new' 'UniformOutput' 'replicateInput'};
-         [func,funcArgs,p] = linq.checkArgs(varargin,names);
+         [func,funcArgs,namedArgs] = linq.checkArgs(varargin,names);
          
-         if ~isempty(p.Results.new)
-            select_new(self,p.Results.new);
+         if ~isempty(namedArgs.new)
+            select_new(self,namedArgs.new);
             return
          end
          
          funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
-            funcArgs,p.Results.replicateInput);
+            funcArgs,namedArgs.replicateInput);
 
          try
             result = self.func(func{1},self.array,funcArgs{:},...
-               'UniformOutput',p.Results.UniformOutput);
+               'UniformOutput',namedArgs.UniformOutput);
             self.place(result);
          catch err
             if strcmp(err.identifier,'MATLAB:arrayfun:NotAScalarOutput') ||...
                strcmp(err.identifier,'MATLAB:cellfun:NotAScalarOutput')
-               if p.Results.UniformOutput
+               if namedArgs.UniformOutput
                   result = self.func(func{1},self.array,funcArgs{:},...
                      'UniformOutput',false);
                   %warning('linq:select','UniformOutput set false');
@@ -308,7 +303,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
          
          names = {'new' 'replicateInput'};
-         [func,funcArgs,p] = linq.checkArgs(varargin,names);
+         [func,funcArgs,namedArgs] = linq.checkArgs(varargin,names);
 
          if numel(func) > 2
             warning('linq:selectMany:InputNumber',...
@@ -318,7 +313,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             if nargin(func{2}) ~=2
                error('Second function handle must accept two arguments');
             end
-         elseif (numel(func) > 1) && ~isempty(p.Results.new)
+         elseif (numel(func) > 1) && ~isempty(namedArgs.new)
             warning('linq:selectMany:InputNumber',...
                'Only first function handle used with ''new'' parameter.');
          elseif numel(func) == 0
@@ -327,18 +322,19 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
 
          funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
-            funcArgs,p.Results.replicateInput);
+            funcArgs,namedArgs.replicateInput);
+         
+         child = linq(self.array).select(func{1},funcArgs{:},'UniformOutput',false);
 
-         if isempty(p.Results.new)
-            child = linq(self.array).select(func{1},funcArgs{:},'UniformOutput',false);
+         if isempty(namedArgs.new)
             if length(func) > 1
-               % Evaluate second function using original array and output
-               % of first function as inputs
                parentList = self.toList();
                for i = 1:self.count
-                  childSub = flattest(child.array{i});%StringsAreIterable?
-                  temp{i} = cellfun(func{2},...
-                     repmat(parentList(i),size(childSub)),childSub,...
+                  % Evaluate second function using original array and flat
+                  % output of first function as inputs
+                  childList = flattest(child.array{i});%StringsAreIterable?
+                  temp{i} = cellfun(...
+                     func{2},repmat(parentList(i),size(childList)),childList,...
                      'UniformOutput',false);
                end
                self.place(flatten(temp));
@@ -346,20 +342,23 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                self.place(flattest(child.toList())); %StringsAreIterable?
             end
          else
-            child = linq(self.array).select(func{1},funcArgs{:},'UniformOutput',false);
-            parent = linq(self.array).select(p.Results.new{2},'UniformOutput',false);
+            parent = linq(self.array).select(namedArgs.new{2},'UniformOutput',false);
             
-            parentField = p.Results.new{1};
-            childField = p.Results.new{3};
+            parentField = namedArgs.new{1};
+            childField = namedArgs.new{3};
             newArray(child.count) = struct(parentField,[],childField,[]);
             count = 1;
             for i = 1:parent.count
-               childSub = linq(child.array{i})...
-                  .select(p.Results.new{4},'UniformOutput',false);
-               childSub.place(flattest(childSub.toList)) %%% HACK
-               for j = 1:childSub.count
+%                childSub = linq(child.array{i})...
+%                  .select(namedArgs.new{4},'UniformOutput',false);
+%                childSub.place(flattest(childSub.toList)) %%% HACK
+               childList = flattest(child.array{i});%StringsAreIterable?
+               childList = cellfun(...
+                  namedArgs.new{4},childList,'UniformOutput',false);
+               for j = 1:numel(childList)%childSub.count
                   newArray(count).(parentField) = parent.array{i};
-                  newArray(count).(childField) = childSub.array{j};
+%                  newArray(count).(childField) = childSub.array{j};
+                  newArray(count).(childField) = childList{j};
                   count = count + 1;
                end
             end
@@ -493,15 +492,17 @@ classdef(CaseInsensitiveProperties = true) linq < handle
    
    methods(Static)
       
-      function [funcs,unnamedArgs,p] = checkArgs(args,names)
-         [namedArgs,unnamedArgs] = linq.interceptParams(names,args);
+      function [funcs,unnamedArgs,namedArgs] = checkArgs(args,names)
+         [namedArgsList,unnamedArgs] = linq.interceptParams(names,args);
          [funcs,unnamedArgs] = linq.interceptHandle(unnamedArgs);
          
          p = inputParser;
          p.addParamValue('UniformOutput',true,@islogical)
          p.addParamValue('replicateInput',false,@islogical);
          p.addParamValue('new',{},@(x) iscell(x) && (rem(numel(x),2)==0) );
-         p.parse(namedArgs{:});
+         p.parse(namedArgsList{:});
+         
+         namedArgs = p.Results;
       end
       
       function fInput = formatInput(func,m,n,input,replicateInput)
