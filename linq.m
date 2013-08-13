@@ -1,12 +1,15 @@
 % TODO 
 % multidimensional arrays?
+%   probably should force vector shape, see here:
+%   http://undocumentedmatlab.com/blog/setting-class-property-types/
+%   above not useful, but place now forces row format, perhaps should allow
+%   vectors?
 % should this be a value class?
 %http://msmvps.com/blogs/jon_skeet/archive/tags/Edulinq/default.aspx
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
 
-% clean up use of deCell & deArray
-% clean up input parsing and formatting, repeated input parsing in
-% select&selectMany (calls select!?)
+% x clean up use of deCell & deArray
+% clean up input parsing and formatting, repeated input parsing in select&selectMany (calls select!?)
 % fix try/catch in select to return somethign sensible when func bombs
 classdef(CaseInsensitiveProperties = true) linq < handle
    
@@ -38,6 +41,9 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       function place(self,array)
          % Place an array into linq object
          % 
+         if ~isrow(array) && ~isempty(array)
+            array = array(:)';
+         end
          self.array = array;
          if iscell(array)
             self.func = @cellfun;
@@ -67,20 +73,18 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       function output = toArray(self)
          % Return array as a matrix
          %
-         
          if iscell(self.array)
             output = cell2mat(self.array);
          elseif ismatrix(self.array)
             output = self.array;
          else
-            error('Cannot convert to matrix');
+            error('linq:toArray:','Cannot convert to matrix');
          end
       end
        
       function output = toList(self)
          % Return array as a cell array
          %
-         
          if iscell(self.array)
             output = self.array;
          else
@@ -126,7 +130,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          output = containers.Map(keys,values);
       end
       
-      function output = ofType(self,typeName)
+      function self = ofType(self,typeName)
          % Return elements matching type
          %
          % INPUT
@@ -147,16 +151,15 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % isa
          %
          self.where(@(x) isa(x,typeName));
-         output = self;
       end
       
-      function output = sort(self)
+      function self = sort(self)
          if ~ismethod(self.array,'sort')
-            error(sprintf('Sort method does not exist for class %s',class(self.array)));
+            error('linq:sort:InputType',...
+               sprintf('Sort method does not exist for class %s',class(self.array)));
          end
          
          self.array = sort(self.array);
-         output = self;
       end
       
       %% Restriction
@@ -167,7 +170,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % func   - function handle defining predicate
          %
          % OUTPUT
-         % output - linq object
+         % self - linq object
          %
          % OPTIONAL
          % Extra arguments can be passed in as for linq.select
@@ -204,11 +207,14 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          
          array = self.array;
          ind = self.select(func,varargin{:}).toArray();
+         if numel(ind) ~= self.count
+            error('linq:where:InputFormat',...
+               'Predicate does not return a scalar for each element of linq.array.');
+         end
 
          if islogical(ind)
             array(~ind) = [];
             place(self,array);
-            %output = self;
          else
             func = functions(func);
             error('linq:where:InputFormat',...
@@ -230,7 +236,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % 
          %
          % OUTPUT
-         % output - linq object
+         % self - linq object
          %
          % EXAMPLES
          % x = 1:10;
@@ -241,18 +247,14 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % SEE ALSO
          % selectMany, arrayfun, cellfun
          %
-         
          if nargin < 2
             error('linq:select:InputNumber','Predicate is required');
          end
          if self.count == 0
             self.place([]);
-            %output = self;
             return
          end
-         
          if strcmp(func,'new')
-            %output = 
             select_new(self,varargin{:});
             return
          end
@@ -281,12 +283,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                warning('linq:select','UniformOutput set false');
             end
          end
-         % Overwrite data attached to calling handle
          self.place(temp);
-         % Handle can be passed back as output. Allows chaining method
-         % calls, eg. self.method(<expression>).select(<expression>)
-         %output = self;
-         % HACK, just use self = fun(self)????
       end
       
       function self = selectMany(self,varargin)
@@ -305,7 +302,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          %x selectMany(self,func)
          %x selectMany(self,func,resultFunc)
          %x selectMany(self,func,resultFunc,input)
-         %selectMany(self,func,'new',{name func name2 func2})
+         %x selectMany(self,func,'new',{name func name2 func2})
          %selectMany(self,'new',{name func name2 func2})
          if nargin < 2
             error('linq:selectMany:InputNumber','At least one predicate is required');
@@ -353,14 +350,11 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                      repmat(parentList(i),size(childSub)),childSub,...
                      'UniformOutput',false);
                end
-               self.place(deCell(temp));
+               self.place(flatten(temp));
             else
                self.place(deArray(child.toList));
             end
-            %output = self;
-            return
          else
-            %         keyboard
             child = linq(self.array).select(funcs{1},input{:},'UniformOutput',false);
             parent = linq(self.array).select(p.Results.new{2},'UniformOutput',false);
             
@@ -371,7 +365,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             for i = 1:parent.count
                childSub = linq(child.array{i})...
                   .select(p.Results.new{4},'UniformOutput',false);
-               childSub.place(deArray(childSub.toList)) %%% HACK
+               childSub.place(flattest(childSub.toList)) %%% HACK
                for j = 1:childSub.count
                   newArray(count).(parentField) = parent.array{i};
                   newArray(count).(childField) = childSub.array{j};
@@ -379,8 +373,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
                end
             end
             self.place(newArray);
-            %output = self;
-            return
          end
       end
       
@@ -389,7 +381,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % Determine whether any the array elements satisfy a condition
          %http://msmvps.com/blogs/jon_skeet/archive/2010/12/28/reimplementing-linq-to-objects-part-10-any-and-all.aspx
          % TODO should this accept inputs like SELECT???
-         
+         %
          if nargin == 1
             if self.count
                output = true;
@@ -428,8 +420,9 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
       end
       
-      function output = all(self,func)
+      function [output,ind] = all(self,func)
          % Determine whether all the array elements satisfy a condition
+         %
          ind = 1;
          output = true;
          maxInd = self.count;
@@ -459,8 +452,8 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          %
          % TODO
          % Issue warning or error if ~isvector(array)
+         %
          self.array = self.array(end:-1:1);
-         %output = self;
       end
       
       function self = randomize(self,withReplacement)
@@ -479,7 +472,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          else
             self.array = self.array(randperm(self.count));
          end
-         %output = self.array;
       end
    end
    
@@ -507,7 +499,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             end
          end
          self.place(newArray);
-         %output = self;
       end
    end
    
@@ -521,7 +512,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % n - # column elements to format inputs according to
          % input - cell array of additional inputs for func
          %
-         
          nInput = numel(input);
          if nInput == 0
             fInput = {};
@@ -573,6 +563,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
          %params = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
+         %
          count = 1;
          toRemove = [];
          a = {};
