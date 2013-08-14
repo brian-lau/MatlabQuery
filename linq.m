@@ -222,6 +222,32 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       end      
       
       %% Partition
+      function self = skip()
+      end
+      function self = skipWhile()
+      end
+      function self = take()
+      end
+      function self = takeWhile()
+      end
+      
+      %% Join
+      function self = join(self,inner,outerKeySelector,innerKeySelector,resultSelector)
+         outer = self.toList;
+         outerKey = linq(outer).select(outerKeySelector);
+         innerKey = linq(inner).select(innerKeySelector);
+         
+         count = 1;
+         for i = 1:outerKey.count
+            for j = 1:innerKey.count
+               if isequal(outerKey.elementAt(i),innerKey.elementAt(j))
+                  array{count} = resultSelector(outer{i},inner{j});
+                  count = count + 1;
+               end
+            end
+         end
+         self.place(array);
+      end
       
       %% Projection
       function self = select(self,varargin)
@@ -291,6 +317,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % Additional arguments are passed exclusively to func
          % resultFunc can be modified by chaining select
          %http://msmvps.com/blogs/jon_skeet/archive/2010/12/27/reimplementing-linq-to-objects-part-9-selectmany.aspx
+         % http://www.hookedonlinq.com/SelectManyOperator.ashx
          
          %x selectMany(self,func)
          %x selectMany(self,func,resultFunc)
@@ -349,15 +376,11 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             newArray(child.count) = struct(parentField,[],childField,[]);
             count = 1;
             for i = 1:parent.count
-%                childSub = linq(child.array{i})...
-%                  .select(namedArgs.new{4},'UniformOutput',false);
-%                childSub.place(flattest(childSub.toList)) %%% HACK
                childList = flattest(child.array{i});%StringsAreIterable?
                childList = cellfun(...
                   namedArgs.new{4},childList,'UniformOutput',false);
-               for j = 1:numel(childList)%childSub.count
+               for j = 1:numel(childList)
                   newArray(count).(parentField) = parent.array{i};
-%                  newArray(count).(childField) = childSub.array{j};
                   newArray(count).(childField) = childList{j};
                   count = count + 1;
                end
@@ -461,6 +484,16 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             self.array = self.array(randperm(self.count));
          end
       end
+      
+      %% Element
+      function output = elementAt(self,ind)
+         if isequal(self.func,@cellfun)
+            output = self.array{ind};
+         else
+            output = self.array(ind);
+         end
+      end
+      
    end
    
    methods(Access = private)
