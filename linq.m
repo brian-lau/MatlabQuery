@@ -233,15 +233,17 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       
       %% Join
       function self = join(self,inner,outerKeySelector,innerKeySelector,resultSelector)
-         outer = self.toList;
-         outerKey = linq(outer).select(outerKeySelector);
-         innerKey = linq(inner).select(innerKeySelector);
+         outer = self;
+         inner = linq(inner);
+         outerKey = linq(self.array).select(outerKeySelector);
+         innerKey = linq(inner.array).select(innerKeySelector);
          
+         % TODO optimize to avoid inner loop
          count = 1;
          for i = 1:outerKey.count
             for j = 1:innerKey.count
                if isequal(outerKey.elementAt(i),innerKey.elementAt(j))
-                  array{count} = resultSelector(outer{i},inner{j});
+                  array{count} = resultSelector(outer.elementAt(i),inner.elementAt(j));
                   count = count + 1;
                end
             end
@@ -409,22 +411,12 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          ind = 1;
          output = false;
          maxInd = self.count;
-         if isequal(self.func,@arrayfun)
-            while ind <= maxInd
-               if func(self.array(ind))
-                  output = true;
-                  break;
-               end
-               ind = ind + 1;
+         while ind <= maxInd
+            if func(self.elementAt(ind))
+               output = true;
+               break;
             end
-         else
-            while ind <= maxInd
-               if func(self.array{ind})
-                  output = true;
-                  break;
-               end
-               ind = ind + 1;
-            end
+            ind = ind + 1;
          end
          
          if ~output
@@ -435,25 +427,16 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       function [output,ind] = all(self,func)
          % Determine whether all the array elements satisfy a condition
          %
+         % TODO recode to use elementAT
          ind = 1;
          output = true;
          maxInd = self.count;
-         if isequal(self.func,@arrayfun)
-            while ind <= maxInd
-               if ~func(self.array(ind))
-                  output = false;
-                  break;
-               end
-               ind = ind + 1;
+         while ind <= maxInd
+            if ~func(self.elementAt(ind))
+               output = false;
+               break;
             end
-         else
-            while ind <= maxInd
-               if ~func(self.array{ind})
-                  output = false;
-                  break;
-               end
-               ind = ind + 1;
-            end
+            ind = ind + 1;
          end
       end
 
@@ -524,6 +507,10 @@ classdef(CaseInsensitiveProperties = true) linq < handle
    end
    
    methods(Static)
+      
+      function new()
+         % abstract the creation of a struct array
+      end
       
       function [funcs,unnamedArgs,namedArgs] = checkArgs(args,names)
          [namedArgsList,unnamedArgs] = linq.interceptParams(names,args);
