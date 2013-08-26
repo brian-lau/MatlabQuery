@@ -7,7 +7,14 @@
 % should this be a value class?
 %http://msmvps.com/blogs/jon_skeet/archive/tags/Edulinq/default.aspx
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
+%http://www.code-magazine.com/Article.aspx?quickid=090043
 
+% Monad stuff
+% https://www.google.com/search?q=linq+let+method+syntax&oq=linq+let+method&aqs=chrome.1.69i57j0l3j69i62l2.5702j0&sourceid=chrome&ie=UTF-8&qscrl=1
+%http://tomasp.net/blog/idioms-in-linq.aspx
+%http://ericlippert.com/category/monads/
+%http://mikehadlow.blogspot.fr/2011/01/monads-in-c1-introduction.html
+% 
 % x clean up use of deCell & deArray
 % clean up input parsing and formatting, repeated input parsing in select&selectMany (calls select!?)
 % x fix try/catch in select to return somethign sensible when func bombs
@@ -167,7 +174,8 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % Returns elements for which the predicate function returns true
          %
          % INPUTS
-         % func   - function handle defining predicate
+         % func - Function handle defining predicate. Must return a scalar
+         %        boolean for each element of collection
          %
          % OUTPUT
          % self - linq object
@@ -233,6 +241,8 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       
       %% Join
       function self = join(self,inner,outerKeySelector,innerKeySelector,resultSelector)
+         %http://msmvps.com/blogs/jon_skeet/archive/2010/12/31/reimplementing-linq-to-objects-part-19-join.aspx
+         %https://code.google.com/p/edulinq/source/browse/src/Edulinq.Tests/JoinTest.cs
          outer = self;
          inner = linq(inner);
          outerKey = linq(self.array).select(outerKeySelector);
@@ -427,7 +437,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       function [output,ind] = all(self,func)
          % Determine whether all the array elements satisfy a condition
          %
-         % TODO recode to use elementAT
          ind = 1;
          output = true;
          maxInd = self.count;
@@ -532,7 +541,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % m - # row elements to format inputs according to
          % n - # column elements to format inputs according to
          % input - cell array of additional inputs for func
-         %
          nInput = numel(input);
          if nInput == 0
             fInput = {};
@@ -584,7 +592,6 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
          %names = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
-         %
          count = 1;
          toRemove = [];
          a = {};
