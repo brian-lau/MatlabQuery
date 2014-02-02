@@ -9,6 +9,8 @@
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
 %http://www.code-magazine.com/Article.aspx?quickid=090043
 
+%https://code.google.com/p/morelinq/
+
 % Monad stuff
 % https://www.google.com/search?q=linq+let+method+syntax&oq=linq+let+method&aqs=chrome.1.69i57j0l3j69i62l2.5702j0&sourceid=chrome&ie=UTF-8&qscrl=1
 %http://tomasp.net/blog/idioms-in-linq.aspx
@@ -20,15 +22,17 @@
 % x fix try/catch in select to return somethign sensible when func bombs
 classdef(CaseInsensitiveProperties = true) linq < handle
    
-   properties(GetAccess = public, SetAccess = private)
+   properties(SetAccess = private)
       array
       func % hidden?
    end
-   properties(GetAccess = public, SetAccess = private, Dependent = true)
+   properties(SetAccess = private, Dependent = true)
       size
       count
       StringsAreIterable % passed to flattest?
-      version
+   end
+   properties(SetAccess = protected)
+      version = '0.1.0'
    end
    
    methods
@@ -80,7 +84,8 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       function output = toArray(self)
          % Return array as a matrix
          if iscell(self.array)
-            output = cell2mat(self.array);
+            output = [self.array{:}];
+            %output = cell2mat(self.array);
             % TODO, this will bomb if nested cell arrays or objects
          elseif ismatrix(self.array)
             output = self.array;
@@ -308,7 +313,8 @@ classdef(CaseInsensitiveProperties = true) linq < handle
             self.place(result);
          catch err
             if strcmp(err.identifier,'MATLAB:arrayfun:NotAScalarOutput') ||...
-               strcmp(err.identifier,'MATLAB:cellfun:NotAScalarOutput')
+               strcmp(err.identifier,'MATLAB:cellfun:NotAScalarOutput') ||...
+               strcmp(err.identifier,'MATLAB:arrayfun:UnimplementedOutputArrayType')
                if namedArgs.UniformOutput
                   result = self.func(func{1},self.array,funcArgs{:},...
                      'UniformOutput',false);
