@@ -50,7 +50,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
          end
       end
             
-      function place(self,array)
+      function self = place(self,array)
          % Place an array into linq object
          if ~isvector(array) && ~isempty(array)
             array = array(:)';
