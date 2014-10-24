@@ -1,10 +1,24 @@
+% IMPORTANT
+% Chaining method calls after the constructor is technically illegal in Matlab.
+% Ie, 
+%    linq(1:10).where(@(x) x > 5).toArray
+% can fail (and not consistently!), and should be replaced with
+%    q = linq(1:10);
+%    q.where(@(x) x > 5).toArray
+% or 
+%    q = linq();
+%    q.place(1:10).where(@(x) x > 5).toArray
+% While there are contexts in which chaining to the constructor actually works,
+% it's best to avoid it.
+% https://www.mathworks.com/support/bugreports/550291
+% http://stackoverflow.com/questions/10440409/following-calls-to-static-methods-with-indexing-when-importing-classes
+
 % TODO 
 % multidimensional arrays?
 %   probably should force vector shape, see here:
 %   http://undocumentedmatlab.com/blog/setting-class-property-types/
 %   above not useful, but place now forces row format, perhaps should allow
 %   vectors? don't think so, since arrayfun/cellfun still bomb?
-% should this be a value class?
 %http://msmvps.com/blogs/jon_skeet/archive/tags/Edulinq/default.aspx
 %http://apageofinsanity.wordpress.com/2013/07/29/functional-programming-in-matlab-using-query-part-iii/
 %http://www.code-magazine.com/Article.aspx?quickid=090043
@@ -17,9 +31,6 @@
 %http://ericlippert.com/category/monads/
 %http://mikehadlow.blogspot.fr/2011/01/monads-in-c1-introduction.html
 % 
-% x clean up use of deCell & deArray
-% clean up input parsing and formatting, repeated input parsing in select&selectMany (calls select!?)
-% x fix try/catch in select to return somethign sensible when func bombs
 classdef(CaseInsensitiveProperties = true) linq < handle
    
    properties(SetAccess = private)
@@ -235,8 +246,22 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       end      
       
       %% Partition
-      function self = skip()
+      function self = skip(self,n)
+         if self.count == 0
+            error('linq:skip:InputValue','Nothing to skip');
+            return;
+         end
+         if (n+1) > self.count
+            if iscell(self.array)
+               self.place({});
+            else
+               self.place([]);
+            end
+         elseif n > 0
+            self.place(self.array(n+1:end));
+         end
       end
+
       function self = skipWhile()
       end
       function self = take()
