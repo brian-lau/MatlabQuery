@@ -24,7 +24,7 @@ assertEqual(result.toList,source);
 
 function testEmptySource
 l = linq([]);
-f = @() l.skip(10);
+f = @() l.skipWhile(@(x) x > 3);
 assertExceptionThrown(f,'linq:skip:InputValue')
 
 function testCountShorterThanSource

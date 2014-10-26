@@ -1,4 +1,4 @@
-function test_suite = testLinqWhere
+function test_suite = testLinqSelectMany
 initTestSuite;
 
 

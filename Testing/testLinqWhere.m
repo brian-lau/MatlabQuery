@@ -3,6 +3,10 @@ initTestSuite;
 
 
 %%
+function testInvalidFunctionException
+f = @() linq(1:10).where('@(x) dogs');
+assertExceptionThrown(f,'linq:where:InputFormat')
+
 function testLinq1
 numbers = [5 4 1 3 9 8 6 7 2 0];
 q = linq(numbers);
