@@ -1,3 +1,5 @@
+% Sort a sequence
+
 function self = sort(self)
 
 if ~ismethod(self.array,'sort')

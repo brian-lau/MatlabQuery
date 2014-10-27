@@ -28,9 +28,11 @@ assertEqual(result.toArray,[]);
 
 function testWithIndexSimpleProjection
 source = [1 5 2];
+result = linq(source).select(@(x,y) x + (y-1)*10);
+% v0.3.0 allows index overload
 % Using the index is not explicitly supported (I don't know how to get it
 % dynamically. However, it can be hacked as a second input to the predicate
-result = linq(source).select(@(x,y) x + y*10,(1:length(source))-1);
+%result = linq(source).select(@(x,y) x + y*10,(1:length(source))-1);
 assertEqual(result.toArray,[1 15 22]);
 
 function testSimpleProjectionWithNew

@@ -1,8 +1,7 @@
 % Return elements matching type
 %
 % INPUT
-% typeName - string name of type, also works for any MATLAB or
-%            Java class
+% typeName - string name of type, also works for any MATLAB or Java class
 %
 % OUTPUT
 % output   - linq object

@@ -1,4 +1,5 @@
-% Returns elements for which the predicate function returns true
+% Enumerates the source sequence and yields those elements for which 
+% the predicate function returns true.
 %
 % INPUTS
 % func - Function handle defining predicate. Must return a scalar

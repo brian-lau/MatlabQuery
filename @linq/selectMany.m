@@ -1,3 +1,4 @@
+% Performs a one-to-many element projection over a sequence.
 % Always returns flat list (cell array) unless new is used
 %
 % This only works with arrays WHY???

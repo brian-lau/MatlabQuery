@@ -14,7 +14,6 @@
 %     https://github.com/brian-lau/MatlabQuery
 
 % TODO 
-% better handling of index (select,take/skipWhile,where,etc)
 % dictionaries using mapfun
 % multidimensional arrays?
 %   probably should force vector shape, see here:
@@ -35,7 +34,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       func
    end
    properties(SetAccess = protected)
-      version = '0.2.0'
+      version = '0.3.0'
    end
    
    methods
@@ -119,6 +118,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       self = where(self,func,varargin)
       
       %% Set
+      self = distinct(self)
    end
    
    methods(Access = private)

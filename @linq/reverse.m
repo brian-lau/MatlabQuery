@@ -1,4 +1,4 @@
-% Reverse ordering of matrix elements
+% Reverse ordering of sequence
 %
 % TODO
 % Issue warning or error if ~isvector(array)

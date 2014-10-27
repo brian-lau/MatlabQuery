@@ -1,3 +1,5 @@
+% Checks whether a sequence contains a given element.
+%
 % No NULL comparer?
 % custom comparer handled by passing in function handle
 function [output,ind] = contains(self,value)

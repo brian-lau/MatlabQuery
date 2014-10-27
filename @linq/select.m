@@ -1,5 +1,5 @@
-% Returns the results of evaluating the selector function for each
-% matrix element
+% Enumerates the source sequence and yields the results of evaluating 
+% the selector function for each element.
 %
 % INPUTS
 % func
@@ -23,6 +23,7 @@ function self = select(self,varargin)
 if nargin < 2
    error('linq:select:InputNumber','Predicate is required');
 end
+
 if self.count == 0
    self.empty();
    return
@@ -40,8 +41,19 @@ funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
    funcArgs,namedArgs.replicateInput);
 
 try
-   result = self.func(func{1},self.array,funcArgs{:},...
-      'UniformOutput',namedArgs.UniformOutput);
+   if (nargin(func{1})==2) && isempty(funcArgs)
+      % Index overload
+      if isequal(self.func,@cellfun)
+         index = num2cell(1:self.count);
+      else
+         index = 1:self.count;
+      end
+      result = self.func(func{1},self.array,index,...
+         'UniformOutput',namedArgs.UniformOutput);
+   else
+      result = self.func(func{1},self.array,funcArgs{:},...
+         'UniformOutput',namedArgs.UniformOutput);
+   end
    self.place(result);
 catch err
    if strcmp(err.identifier,'MATLAB:arrayfun:NotAScalarOutput') ||...

@@ -1,3 +1,6 @@
+% Performs an inner join of two sequences based on matching keys extracted 
+% from the elements.
+%
 %http://msmvps.com/blogs/jon_skeet/archive/2010/12/31/reimplementing-linq-to-objects-part-19-join.aspx
 %https://code.google.com/p/edulinq/source/browse/src/Edulinq.Tests/JoinTest.cs
 function self = join(self,inner,outerKeySelector,innerKeySelector,resultSelector)
@@ -7,7 +10,9 @@ inner = linq(inner);
 outerKey = linq(self.array).select(outerKeySelector);
 innerKey = linq(inner.array).select(innerKeySelector);
 
-% TODO optimize to avoid inner loop
+% TODO 
+%   optimize to avoid inner loop
+%   need 'new' keyword
 count = 1;
 for i = 1:outerKey.count
    for j = 1:innerKey.count

@@ -66,9 +66,10 @@ function testLinq5
 digits = {'zero' 'one' 'two' 'three' 'four' 'five' 'six' 'seven' 'eight' 'nine'};
 
 q = linq(digits);
-shortDigits = q.where(@(digit,index) length(digit) < index,0:9).toList;
+shortDigits = q.where(@(digit,index) length(digit) < index-1).toList;
+% v0.3.0 allows index overload
+%shortDigits = q.where(@(digit,index) length(digit) < index,0:9).toList;
 %fprintf('The word %s is shorter than its value.\n',shortDigits{:});
-
 assertEqual(shortDigits,{'five' 'six' 'seven' 'eight' 'nine'});
 
 %http://msmvps.com/blogs/jon_skeet/archive/2010/09/03/reimplementing-linq-to-objects-part-2-quot-where-quot.aspx
@@ -96,9 +97,11 @@ assertEqual(result.toList,{1 3 2 1})
 
 function testWithIndexSimpleFiltering
 source = [1 3 4 2 8 1];
+result = linq(source).where(@(x,index) x < index).toArray;
+% v0.3.0 allows index overload
 % Using the index is not explicitly supported (I don't know how to get it
 % dynamically. However, it can be hacked as a second input to the predicate
-result = linq(source).where(@(x,y) x < y,1:length(source)).toArray;
+%result = linq(source).where(@(x,y) x < y,1:length(source)).toArray;
 assertEqual(result,[2 1])
 
 % function WithIndexEmptySource

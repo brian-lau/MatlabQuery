@@ -1,4 +1,5 @@
-% Return a cell array
+% Create a cell array from a sequence.
+%
 function output = toList(self)
 
 if iscell(self.array)

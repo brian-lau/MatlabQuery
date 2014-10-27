@@ -1,4 +1,5 @@
-% Return array as a matrix
+% Create an array from a sequence
+%
 function output = toArray(self)
 
 if iscell(self.array)

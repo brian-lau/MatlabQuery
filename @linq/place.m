@@ -1,4 +1,5 @@
-% Place an array into linq object
+% Place an sequence into linq object
+
 function self = place(self,array)
 
 if ~isvector(array) && ~isempty(array)

@@ -1,4 +1,4 @@
-% Randomize ordering of matrix elements with or without replacement
+% Randomize ordering of sequence with or without replacement
 %
 % OPTIONAL
 % withReplacement - bool indicating whether to sample with

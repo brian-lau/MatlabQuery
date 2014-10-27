@@ -1,4 +1,4 @@
-% Create a dictionary
+% Create a dictionary from a sequence
 %
 % INPUTS
 % keyFunc - function handle selecting keys
