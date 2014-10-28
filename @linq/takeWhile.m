@@ -2,26 +2,24 @@
 % the remainder of the sequence. Stops when the predicate function 
 % returns false or the end of the source sequence is reached.
 % 
-function self = takeWhile(self,func,varargin)
+function self = takeWhile(self,func)
 
-q = linq();
-for i = 1:self.count
+index = 1;
+n = self.count;
+arg = {};
+while index <= n
    % Index overload
-   if (nargin(func)==2) && (nargin==2)
-      arg = {i};
-   else
-      arg = varargin;
+   if (nargin(func)==2) && isequal(@arrayfun,self.func)
+      arg = {index};
+   elseif (nargin(func)==2) && isequal(@cellfun,self.func)
+      arg = {{index}};
    end
    
-   if q.place(self.array(i)).select(func,arg{:}).toArray
-      continue;
+   if self.func(func,self.array(index),arg{:})
+      index = index + 1;
    else
       break;
    end
 end
 
-if i == self.count
-   i = i + 1;
-end
-
-self.take(i-1);
+self.take(index-1);
