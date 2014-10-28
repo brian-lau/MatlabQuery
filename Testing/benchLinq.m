@@ -2,7 +2,8 @@ for i = 1:100000
    x(i).r = i;
 end
 
-tic;y = linq(x).where(@(x) x.r>500).toArray;toc
+q = linq(x);
+tic;y = q.where(@(x) x.r>500).toArray;toc
 tic;z = x([x.r]>500);toc
 
 
@@ -17,6 +18,8 @@ tic;
 temp = [x.y];
 z = x([temp.z]>500);
 toc
+
+iseven = @(x) rem(x,2)==0;
 
 tic;
 y = linq(x).where(@(x) x.y.z>500 && iseven(x.y.z)).toArray;

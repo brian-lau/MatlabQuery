@@ -4,6 +4,11 @@ function [output,ind] = all(self,func)
 
 ind = 1;
 output = true;
+
+if self.count == 0
+   return;
+end
+
 maxInd = self.count;
 while ind <= maxInd
    if ~func(self.elementAt(ind))

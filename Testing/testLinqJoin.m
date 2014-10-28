@@ -37,4 +37,4 @@ result = outer.join(order,@(x) x.id, @(y) y.id,...
 function testSimpleJoin2
 outer = linq({ 'first', 'second', 'third'});
 inner = { 'essence', 'offer', 'eating', 'psalm' };
-outer.join(inner,@(x) x(1),@(y) y(2),@(x,y) [x ':' y])
+outer.join(inner,@(x) x(1),@(y) y(2),@(x,y) [x ':' y]);

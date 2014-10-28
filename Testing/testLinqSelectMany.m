@@ -15,16 +15,26 @@ assertEqual(words.toList,...
    {'The'  'quick'  'brown'  'fox'  'jumped'  'over'  'the'  'lazy'  'dog.'});
 
 %https://code.google.com/p/edulinq/source/browse/src/Edulinq.Tests/SelectManyTest.cs
-function testSelectManyTest
+function testSimpleFlatten
 numbers = [3 5 20 15];
+query = linq(numbers).selectMany(@(x) num2cell(num2str(x)));
+assertEqual(query.toList,{'3' '5' '2' '0' '1' '5'});
+
+numbers = {3 5 20 15};
 query = linq(numbers).selectMany(@(x) num2cell(num2str(x)));
 assertEqual(query.toList,{'3' '5' '2' '0' '1' '5'});
 
 function testSimpleFlattenWithIndex
 numbers = [3 5 20 15];
+query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y-1)));
+% index allowed in v0.3.0
 % Using the index is not explicitly supported (I don't know how to get it
 % dynamically. However, it can be hacked as a second input to the predicate
-query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y)),0:3);
+%query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y)),0:3);
+assertEqual(query.toList,{'3' '6' '2' '2' '1' '8'});
+
+numbers = {3 5 20 15};
+query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y-1)));
 assertEqual(query.toList,{'3' '6' '2' '2' '1' '8'});
 
 function testFlattenWithProjection
@@ -33,40 +43,57 @@ query = linq(numbers).selectMany(@(x) num2cell(num2str(x)),...
    @(x,c) [num2str(x) ': ' c]);
 assertEqual(query.toList,{'3: 3', '5: 5', '20: 2', '20: 0', '15: 1', '15: 5'});
 
+numbers = {3 5 20 15};
+query = linq(numbers).selectMany(@(x) num2cell(num2str(x)),...
+   @(x,c) [num2str(x) ': ' c]);
+assertEqual(query.toList,{'3: 3', '5: 5', '20: 2', '20: 0', '15: 1', '15: 5'});
+
 function FlattenWithProjectionAndIndex
 numbers = [3 5 20 15];
+query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y-1)),...
+   @(x,c) [num2str(x) ': ' c]);
+% index allowed in v0.3.0
 % Using the index is not explicitly supported (I don't know how to get it
 % dynamically. However, it can be hacked as a second input to the FIRST predicate
-query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y)),...
-   @(x,c) [num2str(x) ': ' c],[0 1 2 3]);
+%query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y)),...
+%   @(x,c) [num2str(x) ': ' c],[0 1 2 3]);
 assertEqual(query.toList,{'3: 3', '5: 6', '20: 2', '20: 2', '15: 1', '15: 8'});
 
 % Location of additional inputs doesn't matter, they always go to the first
 % predicate
-query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y)),[0 1 2 3],...
+query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y-1)),...
    @(x,c) [num2str(x) ': ' c]);
 assertEqual(query.toList,{'3: 3', '5: 6', '20: 2', '20: 2', '15: 1', '15: 8'});
 
 numbers = {3 5 20 15};
-query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y)),...
-   @(x,c) [num2str(x) ': ' c],[0 1 2 3]);
+query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y-1)),...
+   @(x,c) [num2str(x) ': ' c]);
 assertEqual(query.toList,{'3: 3', '5: 6', '20: 2', '20: 2', '15: 1', '15: 8'});
 
-query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y)),[0 1 2 3],...
+query = linq(numbers).selectMany(@(x,y) num2cell(num2str(x+y-1)),...
    @(x,c) [num2str(x) ': ' c]);
 assertEqual(query.toList,{'3: 3', '5: 6', '20: 2', '20: 2', '15: 1', '15: 8'});
 
 %http://www.code-magazine.com/Article.aspx?quickid=090043
 function testEvenOdd
-
 odds = (1:2:8);
 evens = (2:2:8);
 values = linq(odds).selectMany(@(x,y) y,{evens},'replicateInput',true,...
    'new',{'o' @(x) x 'e' @(y) y})...
-   .select('new',{'oddNumber' @(x) x.o 'evenNumber' @(x) x.e 'sum' @(x) x.o+x.e});
-% values = linq(odds).selectMany(@(x,y) y,num2cell(evens),'replicateInput',true,...
-%    'new',{'o' @(x) x 'e' @(y) y})...
-%    .select('new',{'oddNumber' @(x) x.o 'evenNumber' @(x) x.e 'sum' @(x) x.o+x.e});
+   .select('new',{'oddNumber' @(x) x.o 'evenNumber' @(x) x.e 'sum' @(x) x.o+x.e})...
+   .toArray();
+assertEqual([values.oddNumber],[1 1 1 1 3 3 3 3 5 5 5 5 7 7 7 7]);
+assertEqual([values.evenNumber],[2 4 6 8 2 4 6 8 2 4 6 8 2 4 6 8]);
+assertEqual([values.sum],[3 5 7 9 5 7 9 11 7 9 11 13 9 11 13 15]);
+
+% Can also do this without by calling struct directly
+values = linq(odds).selectMany(@(x,y) y,{evens},'replicateInput',true,...
+   'new',{'o' @(x) x 'e' @(y) y})...
+   .select(@(x) struct('oddNumber',x.o,'evenNumber',x.e,'sum',x.o+x.e))...
+   .toArray();
+assertEqual([values.oddNumber],[1 1 1 1 3 3 3 3 5 5 5 5 7 7 7 7]);
+assertEqual([values.evenNumber],[2 4 6 8 2 4 6 8 2 4 6 8 2 4 6 8]);
+assertEqual([values.sum],[3 5 7 9 5 7 9 11 7 9 11 13 9 11 13 15]);
 
 % Works for cell arrays
 odds = num2cell(1:2:8);
@@ -152,67 +179,4 @@ assertEqual(teamsAndTheirLeagues.team.Name,'Broncos');
 assertEqual(teamsAndTheirLeagues.team.HomeState,'CO');
 assertEqual(teamsAndTheirLeagues.team.NumberOfWins,0);
 assertEqual(teamsAndTheirLeagues.playerCount,4);
-
-% function testNestedStruct2
-% patient(1).name = 'Brian Lau';
-% patient(1).billing = 28.50;
-% patient(1).test = {'a' 'b' 'c'};
-% patient(1).testResult = [1 2 3];
-% 
-% patient(2).name = 'C Karachi';
-% patient(2).billing = 18.50;
-% patient(2).test = {'e' 'f'};
-% patient(2).testResult = [4 5];
-% 
-% patient(3).name = 'Elsa Agid';
-% patient(3).billing = 1.50;
-% patient(3).test = {'g' 'h' 'j' 'k'};
-% patient(3).testResult = [6 7 8 9];
-% 
-% patient(4).name = 'Michelle Lau';
-% patient(4).billing = 2.50;
-% patient(4).test = {'g' 'h' 'j' 'k'};
-% patient(4).testResult = [6 7 8 9];
-% 
-% patient(5).name = 'Chris Lau';
-% patient(5).billing = 200.50;
-% patient(5).test = {'g' 'h' 'j' 'k'};
-% patient(5).testResult = [6 7 8 9];
-% 
-% linq(patient).where(@(x) ~isempty(strfind(x.name,'Lau'))>0 )...
-%    .select(@(x) x.billing).toArray
-% 
-% linq(patient).where(@(x) ~isempty(strfind(x.name,'Lau'))>0 )...
-%    .where(@(x) x.billing > 100)...
-%    .select(@(x) x.name).toArray
-% 
-% linq(patient).where(@(x) any(strcmpi(x.test,'g'))>0 )...
-%    .select(@(x) x.name)...
-%    .toList
-% 
-% linq(patient).where(@(x) any(strcmpi(x.test,'g'))>0 )...
-%    .toArray.testResult
-% 
-% linq(patient).selectMany(@(x) upper(x.test),'new',{'name' @(x) upper(x.name) 'test' @(y) y})...
-%    .select(@(x) fprintf('%s - %s\n',x.name,x.test));
-% 
-% linq(patient).selectMany(@(x) x.testResult,'new',{'name' @(x) upper(x.name) 'op' @(x) x*2})...
-%    .select(@(x) fprintf('%s - %1.3f\n',x.name,x.op));
-% 
-% c = linq(patient).select('new',{'a' @(x) x.name 'b' @(x) x.test 'c' @(x) sum(x.testResult)})...
-%    .toList
-% 
-% s(1) = struct('customer','george','purchases',[]);
-% s(1).purchases = struct('item','wrench','cost',55);
-% s(1).purchases(2) = struct('item','coat','cost',25);
-% s(2) = struct('customer','frank','purchases',[]);
-% s(2).purchases = struct('item','steak','cost',15);
-% s(2).purchases(2) = struct('item','dog','cost',250);
-% s(2).purchases(3) = struct('item','flowers','cost',50);
-% 
-% d = linq(s).selectMany(@(x) x.purchases,...
-%    'new',{'name' @(x) upper(x.customer) 'test' @(y) y.item}...
-%    )...
-%    .toList
-
 
