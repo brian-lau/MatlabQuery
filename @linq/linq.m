@@ -21,7 +21,7 @@
 %   above not useful, but place now forces row format, perhaps should allow
 %   vectors? don't think so, since arrayfun/cellfun still bomb?
 
-classdef(CaseInsensitiveProperties = true) linq < handle
+classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
    properties(SetAccess = private)
       array
    end
@@ -34,7 +34,7 @@ classdef(CaseInsensitiveProperties = true) linq < handle
       func
    end
    properties(SetAccess = protected)
-      version = '0.3.0'
+      version = '0.4.0'
    end
    
    methods

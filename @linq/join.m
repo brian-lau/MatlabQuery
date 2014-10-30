@@ -11,8 +11,8 @@ outerKey = linq(self.array).select(outerKeySelector);
 innerKey = linq(inner.array).select(innerKeySelector);
 
 % TODO 
-%   optimize to avoid inner loop
-%   need 'new' keyword
+%   o optimize to avoid inner loop
+%   x need 'new' keyword? no do directly with struct
 count = 1;
 for i = 1:outerKey.count
    for j = 1:innerKey.count
