@@ -23,13 +23,20 @@
 % SEE ALSO
 % containers.Map
 %
+%     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
+%     Released under the BSD license. The license and most recent version
+%     of the code can be found on GitHub:
+%     https://github.com/brian-lau/MatlabQuery
+
 %http://msmvps.com/blogs/jon_skeet/archive/2011/01/02/reimplementing-linq-to-objects-todictionary.aspx
 %http://geekswithblogs.net/BlackRabbitCoder/archive/2010/10/21/c.net-little-wonders-todictionary-and-tolist.aspx
 function output = toDictionary(self,keyFunc,valFunc)
 
-keys = linq(self.array).select(keyFunc,'UniformOutput',false).toList();
+q = linq(self.array);
+keys = q.select(keyFunc,'UniformOutput',false).toList();
 if nargin == 3
-   values = linq(self.array).select(valFunc,'UniformOutput',false).toList();
+   q.place(self.array);
+   values = q.select(valFunc,'UniformOutput',false).toList();
 else
    values = self.select(@(x) x,'UniformOutput',false).toList();
 end

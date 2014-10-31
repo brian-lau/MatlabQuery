@@ -1,6 +1,11 @@
 % Performs a one-to-many element projection over a sequence.
 % Always returns flat list (cell array) unless new is used
 %
+%     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
+%     Released under the BSD license. The license and most recent version
+%     of the code can be found on GitHub:
+%     https://github.com/brian-lau/MatlabQuery
+
 % This only works with arrays WHY???
 % TODO how to flatten for arrays???
 % Additional arguments are passed exclusively to func

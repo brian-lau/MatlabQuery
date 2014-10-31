@@ -1,5 +1,10 @@
 % Skips a given number of elements from a sequence and then yields the 
 % remainder of the sequence.
+%
+%     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
+%     Released under the BSD license. The license and most recent version
+%     of the code can be found on GitHub:
+%     https://github.com/brian-lau/MatlabQuery
 
 function self = skip(self,n)
 

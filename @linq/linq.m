@@ -74,8 +74,8 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       self = place(self,array)
 
       %% Concatenation
-      %concat
-      
+      self = concat(self,obj)
+
       %% Conversion
       self = ofType(self,typeName)          
       output = toArray(self)
@@ -97,6 +97,9 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       %% Ordering
       self = reverse(self)
       self = randomize(self,withReplacement)
+      function self = shuffle(self)
+         self.randomize();
+      end
       self = sort(self)
 
       %% Partition
@@ -129,7 +132,6 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
          % params - cell array of name/value pairs
          %
          % TODO better input format checking
-         % why wouldn't you use selectMany for this???
          %
          nFields = numel(params)/2;
          fieldNames = params(1:2:end);

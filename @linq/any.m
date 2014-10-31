@@ -2,11 +2,12 @@
 % If no predicate function is specified, simply returns true if 
 % the source sequence contains any elements. Enumeration of the 
 % source sequence is terminated as soon as the result is known.
+% 
+%     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
+%     Released under the BSD license. The license and most recent version
+%     of the code can be found on GitHub:
+%     https://github.com/brian-lau/MatlabQuery
 
-% http://msmvps.com/blogs/jon_skeet/archive/2010/12/28/reimplementing-linq-to-objects-part-10-any-and-all.aspx
-% TODO 
-%   should this accept inputs like SELECT???
-%
 function [output,ind] = any(self,func)
 
 if nargin == 1

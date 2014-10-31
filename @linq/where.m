@@ -33,6 +33,12 @@
 %
 % SEE ALSO
 % select
+%
+%     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
+%     Released under the BSD license. The license and most recent version
+%     of the code can be found on GitHub:
+%     https://github.com/brian-lau/MatlabQuery
+
 function self = where(self,func,varargin)
 
 if nargin < 2

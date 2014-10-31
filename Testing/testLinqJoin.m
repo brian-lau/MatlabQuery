@@ -29,12 +29,25 @@ order(3).product = 'Computer';
 order(4).id = 8;
 order(4).product = 'Shirt';
 
-% NEW NOT DONE
-outer = linq(customer);
-result = outer.join(order,@(x) x.id, @(y) y.id,...
-   @(x,y) [x.name ' bought ' y.product]);
+query = linq(customer);
+% new anon type handled using struct
+query.join(order,@(x) x.id, @(y) y.id,...
+   @(x,y) struct('name',x.name,'product',y.product));
+for i = 1:query.count
+   %fprintf('%s bought %s\n',query.elementAt(i).name,query.elementAt(i).product);
+   assertEqual(query.elementAt(i).name,customer(i).name)
+   assertEqual(query.elementAt(i).product,order(i).product)
+end
 
 function testSimpleJoin2
 outer = linq({ 'first', 'second', 'third'});
 inner = { 'essence', 'offer', 'eating', 'psalm' };
 outer.join(inner,@(x) x(1),@(y) y(2),@(x,y) [x ':' y]);
+assertEqual({'first:offer' 'second:essence' 'second:psalm'},outer.toList)
+% 
+% outer = linq(1:200);
+% outer.join(1:200,@(x) x,@(y) y,@(x,y) x);
+% 
+% outer = linq(num2cell(1:200));
+% outer.join(num2cell(1:200),@(x) x,@(y) y,@(x,y) x);
+%er

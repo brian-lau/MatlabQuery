@@ -42,16 +42,16 @@ assertEqual(result.toArray,[1 15 22]);
 function testWithIndexEmptySource
 source = [];
 q = linq(source);
-q.select(@(x,index) x + index)
+q.select(@(x,index) x + index);
 assertEqual(q.toArray,[]);
 
 function testSimpleProjectionWithNew
-source = [1:10];
-result = linq(source)...
-   .select('new',{'source' @(x) x 'projection' @(x) x^2})...
-   .toArray();
-assertEqual([result.source],1:10);
-assertEqual([result.projection],(1:10).^2);
+% source = [1:10];
+% result = linq(source)...
+%    .select('new',{'source' @(x) x 'projection' @(x) x^2})...
+%    .toArray();
+% assertEqual([result.source],1:10);
+% assertEqual([result.projection],(1:10).^2);
 
 % This is probably the easier way to do this.....
 source = [1:10];
@@ -64,15 +64,15 @@ assertEqual([result.projection],(1:10).^2);
 function testCharProjectionWithNew
 %http://www.hookedonlinq.com/SelectOperator.ashx
 words =  {'aPPLE', 'BlUeBeRrY', 'cHeRry'};
-upperLower = linq(words)...
-   .select('new',{'Upper' @(x) upper(x) 'Lower' @(x) lower(x)})...
-   .toArray();
-assertEqual(upperLower(1).Upper,'APPLE');
-assertEqual(upperLower(2).Upper,'BLUEBERRY');
-assertEqual(upperLower(3).Upper,'CHERRY');
-assertEqual(upperLower(1).Lower,'apple');
-assertEqual(upperLower(2).Lower,'blueberry');
-assertEqual(upperLower(3).Lower,'cherry');
+% upperLower = linq(words)...
+%    .select('new',{'Upper' @(x) upper(x) 'Lower' @(x) lower(x)})...
+%    .toArray();
+% assertEqual(upperLower(1).Upper,'APPLE');
+% assertEqual(upperLower(2).Upper,'BLUEBERRY');
+% assertEqual(upperLower(3).Upper,'CHERRY');
+% assertEqual(upperLower(1).Lower,'apple');
+% assertEqual(upperLower(2).Lower,'blueberry');
+% assertEqual(upperLower(3).Lower,'cherry');
 
 upperLower = linq(words)...
    .select(@(x) struct('Upper',upper(x),'Lower',lower(x)))...
