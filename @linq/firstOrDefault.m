@@ -6,11 +6,13 @@
 
 function output = firstOrDefault(self,func)
 
+isCell = iscell(self.array);
+
 if nargin == 1
    if self.count > 0
       output = self.elementAt(1);
    else
-      if iscell(self.array)
+      if isCell
          output = {};
       else
          output = [];
@@ -20,26 +22,23 @@ if nargin == 1
 end
 
 match = false;
-if iscell(self.array)
-   for index = 1:self.count
-      if func(self.array{index})
-         match = true;
-         break;
-      end
+for index = 1:self.count
+   if isCell
+      x = self.array{index};
+   else
+      x = self.array(index);
    end
-else
-   for index = 1:self.count
-      if func(self.array(index))
-         match = true;
-         break;
-      end
+   
+   if func(x)
+      match = true;
+      break;
    end
 end
 
 if match
    output = self.elementAt(index);
 else
-   if iscell(self.array)
+   if isCell
       output = {};
    else
       output = [];
