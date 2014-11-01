@@ -54,11 +54,11 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       end            
       
       %% Get Functions
-      function count = get.size(self)
+      function sz = get.size(self)
          if isempty(self.array)
-            count = [0 0];
+            sz = [0 0];
          else
-            count = size(self.array);
+            sz = size(self.array);
          end
       end
       
@@ -98,7 +98,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       self = reverse(self)
       self = randomize(self,withReplacement)
       function self = shuffle(self)
-         self.randomize();
+         self.randomize(false);
       end
       self = sort(self)
 

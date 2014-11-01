@@ -12,11 +12,11 @@
 function self = randomize(self,withReplacement)
 
 if nargin < 2
-   withReplacement = false;
+   withReplacement = true;
 end
 
 if withReplacement
-   self.array = self.array(randi(self.count,1,self.count));
+   self.array = self.array(randi(self.count,self.size));
 else
    self.array = self.array(randperm(self.count));
 end
