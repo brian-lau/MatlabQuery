@@ -50,13 +50,13 @@ Work is in progress to implement all the standard LINQ operators.
 | Sum        |           | |
 
 ## Concatenation
-| LINQ   | Matlab |
-|--------|--------|
-| Concat | concat | Concatenate sequences
+| LINQ   | Matlab | |
+|--------|--------|---|
+| Concat | concat | Concatenate sequences|
 
 ## Conversion
 | LINQ         | Matlab       | |
-|--------------|--------------|-|
+|--------------|--------------|---|
 | AsEnumerable |              | |
 | Cast         |              | |
 | OfType       | ofType       | Filters the elements of a sequence based on a type |
@@ -66,7 +66,7 @@ Work is in progress to implement all the standard LINQ operators.
 
 ## Element
 | LINQ               | Matlab         | |
-|--------------------|----------------|-|
+|--------------------|----------------|---|
 | DefaultIfEmpty     |                | |
 | ElementAt          | elementAt      | Returns element at a given index in a sequence |
 | ElementAtOrDefault |                | |
@@ -84,20 +84,20 @@ Work is in progress to implement all the standard LINQ operators.
 
 ## Generation
 | LINQ   | Matlab | |
-|--------|--------|-|
+|--------|--------|---|
 | Empty  | empty  | Empty sequence |
 | Range  |        | |
 | Repeat |        | |
 
 ## Join
 | LINQ      | Matlab | |
-|-----------|--------|-|
+|-----------|--------|---|
 | GroupJoin |        | |
 | Join      | join   | Inner join based on matching keys extracted from the elements |
 
 ## Ordering
 | LINQ              | Matlab    | |
-|-------------------|-----------|-|
+|-------------------|-----------|---|
 | OrderBy           |           | |
 | OrderByDescending |           | |
 | ThenBy            |           | |
@@ -109,7 +109,7 @@ Work is in progress to implement all the standard LINQ operators.
 
 ## Partition
 | LINQ      | Matlab    | |
-|-----------|-----------|-|
+|-----------|-----------|---|
 | Skip      | skip      | Skips elements from a sequence yielding the remainder |
 | SkipWhile | skipWhile | Skips elements satisfying condition, yielding the remainder |
 | Take      | take      | Takes elements from a sequence skipping the remainder |
@@ -117,29 +117,29 @@ Work is in progress to implement all the standard LINQ operators.
 
 ## Projection
 | LINQ       | Matlab     | |
-|------------|------------|-|
+|------------|------------|---|
 | Select     | select     | Evaluate function for each sequence element |
 | SelectMany | selectMany | One-to-many element projection over a sequence |
 
 ## Quantifiers
 | LINQ     | Matlab   | |
-|----------|----------|-|
+|----------|----------|---|
 | All      | all      | Checks if all elements of a sequence satisfy a condition |
 | Any      | any      | Checks if any element of a sequence satisfies a condition |
 | Contains | contains | Checks if a sequence contains a given element |
 
 ## Restriction
 | LINQ  | Matlab | |
-|-------|--------|-|
+|-------|--------|---|
 | Where | where  | Yields elements where the predicate function returns true |
 
 ## Set
-| LINQ      | Matlab   |
-|-----------|----------|
+| LINQ      | Matlab   | |
+|-----------|----------|---|
 | Distinct  | distinct | Yields unique sequence |
-| Except    |          |
-| Intersect |          |
-| Union     |          |
+| Except    |          | |
+| Intersect |          | |
+| Union     |          | |
 
 Contributions
 --------------------------------
