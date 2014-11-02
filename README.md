@@ -41,7 +41,7 @@ Work is in progress to implement all the standard LINQ operators.
 
 ## Aggregration
 | LINQ       | Matlab    | |
-|------------|-----------|-|
+|------------|-----------|---|
 | Aggregrate |           | |
 | Average    |           | |
 | Count      | count     | Count # of elements in sequence |
