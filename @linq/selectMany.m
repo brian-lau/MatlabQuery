@@ -1,5 +1,5 @@
-% Performs a one-to-many element projection over a sequence.
-% Always returns flat list (cell array) unless new is used
+%     Performs a one-to-many element projection over a sequence.
+%     Always returns flat list (cell array) unless new is used
 %
 %     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
 %     Released under the BSD license. The license and most recent version
@@ -32,6 +32,7 @@ if numel(func) > 2
    warning('linq:selectMany:InputNumber',...
       'Only first two function handles used.');
 end
+
 if numel(func) > 1
    if nargin(func{2}) ~=2
       error('Second function handle must accept two arguments');
@@ -47,7 +48,8 @@ end
 funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
    funcArgs,namedArgs.replicateInput);
 
-child = linq(self.array).select(func{1},funcArgs{:},'UniformOutput',false);
+child = linq(self.array);
+child.select(func{1},funcArgs{:},'UniformOutput',false);
 
 if isempty(namedArgs.new)
    if length(func) > 1
@@ -65,7 +67,8 @@ if isempty(namedArgs.new)
       self.place(flattest(child.toList())); %StringsAreIterable?
    end
 else
-   parent = linq(self.array).select(namedArgs.new{2},'UniformOutput',false);
+   parent = linq(self.array);
+   parent.select(namedArgs.new{2},'UniformOutput',false);
    
    parentField = namedArgs.new{1};
    childField = namedArgs.new{3};

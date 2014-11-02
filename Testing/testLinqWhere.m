@@ -5,7 +5,7 @@ initTestSuite;
 %%
 function testInvalidFunctionException
 f = @() linq(1:10).where('@(x) dogs');
-assertExceptionThrown(f,'linq:where:InputFormat')
+assertExceptionThrown(f,'checkFunc:InputFormat')
 
 function testLinq1
 numbers = [5 4 1 3 9 8 6 7 2 0];
@@ -31,7 +31,7 @@ for i = 1:100
 end
 
 soldOutProducts = linq(products).where(@(p) p.UnitsInStock == 0)...
-   .select(@(x) x.name).toList;
+   .select(@(x) x.name,'UniformOutput',false).toList;
 
 % for i = 1:length(soldOutProducts)
 %    fprintf('%s is sold out !\n',soldOutProducts{i});
@@ -56,7 +56,7 @@ for i = 1:100
 end
 
 expensiveInStockProducts = linq(products).where(@(p) (p.UnitsInStock > 0) && (p.UnitPrice > 3))...
-   .select(@(x) x.name).toList;
+   .select(@(x) x.name,'UniformOutput',false).toList;
 
 ind = ([products.UnitsInStock] > 0) & ([products.UnitPrice] > 3);
 expensiveInStockProducts2 = {products(ind).name};

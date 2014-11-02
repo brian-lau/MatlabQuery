@@ -1,20 +1,20 @@
 % LINQ - Class for LINQ-like queries
 %
-%     obj = linq(array);
+%     ATTRIBUTES
+%     array -
+%     size  -
+%     count - 
 %
-% ATTRIBUTES
+%     METHODS
 %
-% METHODS
-%
-% EXAMPLES
-% 
+%     EXAMPLES
+
 %     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
 %     Released under the BSD license. The license and most recent version
 %     of the code can be found on GitHub:
 %     https://github.com/brian-lau/MatlabQuery
 
 % TODO 
-% dictionaries using mapfun
 % multidimensional arrays?
 %   probably should force vector shape, see here:
 %   http://undocumentedmatlab.com/blog/setting-class-property-types/
@@ -28,13 +28,13 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
    properties(SetAccess = private, Dependent = true)
       size
       count
-      StringsAreIterable % passed to flattest?
+      %StringsAreIterable % passed to flattest?
    end
    properties(SetAccess = protected, Hidden = true)
       func
    end
    properties(SetAccess = protected)
-      version = '0.4.0'
+      version = '0.5.0'
    end
    
    methods
@@ -100,7 +100,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       function self = shuffle(self)
          self.randomize(false);
       end
-      self = sort(self)
+      self = sort(self,mode)
 
       %% Partition
       self = skip(self,n)
@@ -122,6 +122,20 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       
       %% Set
       self = distinct(self)
+      
+      function B = subsref(self,S)
+         % Handle the first indexing on object itself
+         switch S(1).type
+            case '()'
+               self.place(S(1).subs{:});
+               if numel(S) > 1
+                  B = builtin('subsref',self,S(2:end));
+               end
+            otherwise
+               % Enable normal "." and "{}" behavior
+               B = builtin('subsref',self,S);
+         end
+      end
    end
    
    methods(Access = private)
@@ -225,7 +239,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       function [a,b] = interceptParams(names,list)
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
-         %names = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
+         % names = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
          count = 1;
          toRemove = [];
          a = {};

@@ -1,5 +1,15 @@
-% Create an array from a sequence
+%     Create an array from a sequence
 %
+%     OUTPUT
+%     output - array
+%
+%     EXAMPLES
+%     q = linq(1:10);
+%     q.toArray()
+%
+%     SEE ALSO
+%     toList, toDictionary
+
 %     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
 %     Released under the BSD license. The license and most recent version
 %     of the code can be found on GitHub:

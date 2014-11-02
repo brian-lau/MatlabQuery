@@ -1,5 +1,17 @@
-% Eliminates duplicate elements from a sequence
+%     Eliminates duplicate elements from a sequence
 %
+%     INPUTS
+%
+%     OUTPUT
+%     self - linq object
+%
+%     EXAMPLES
+%     q = linq({'foo' 'bar' 'foo' 'baz'});
+%     q.distinct()
+%
+%     SEE ALSO
+%     unique, sort
+
 %     $ Copyright (C) 2014 Brian Lau http://www.subcortex.net/ $
 %     Released under the BSD license. The license and most recent version
 %     of the code can be found on GitHub:
@@ -7,7 +19,7 @@
 
 % TODO
 %   when unique does not exist, use eq?
-%   also allow passing in comparer
+%   also allow passing in custom comparer
 function self = distinct(self)
 
 if ~ismethod(self.array,'unique')
