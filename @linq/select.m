@@ -30,7 +30,8 @@
 %     of the code can be found on GitHub:
 %     https://github.com/brian-lau/MatlabQuery
 
-function self = select(self,func,varargin)
+%function self = select(self,func,varargin)
+function self = select(self,varargin)
 
 if nargin < 2
    error('linq:select:InputNumber','Predicate is required');
@@ -41,14 +42,15 @@ if self.count == 0
    return
 end
 
-func = checkFunc(func);
 names = {'new' 'UniformOutput' 'replicateInput'};
-[~,funcArgs,namedArgs] = linq.checkArgs(varargin,names);
+[funcs,funcArgs,namedArgs] = linq.checkArgs(varargin,names);
 
 if ~isempty(namedArgs.new)
    select_new(self,namedArgs.new);
    return
 end
+
+func = checkFunc(funcs{1});
 
 funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
    funcArgs,namedArgs.replicateInput);

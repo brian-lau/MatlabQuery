@@ -32,6 +32,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
    end
    properties(SetAccess = protected, Hidden = true)
       func
+      key
    end
    properties(SetAccess = protected)
       version = '0.5.0'
@@ -91,6 +92,9 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       %% Generation
       self = empty(self)
       
+      %% Grouping
+      self = groupBy(self,keySelector,elementSelector,resultSelector)
+      
       %% Join
       self = join(self,inner,outerKeySelector,innerKeySelector,resultSelector)
 
@@ -122,7 +126,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       
       %% Set
       self = distinct(self)
-      
+            
       function B = subsref(self,S)
          % Handle the first indexing on object itself
          switch S(1).type
@@ -170,7 +174,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       end
       
       function [funcs,unnamedArgs,namedArgs] = checkArgs(args,names)
-         [namedArgsList,unnamedArgs] = linq.interceptParams(names,args);
+         [namedArgsList,unnamedArgs] = linq.interceptParams(args,names);
          [funcs,unnamedArgs] = linq.interceptHandle(unnamedArgs);
          
          p = inputParser;
@@ -180,6 +184,9 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
          p.parse(namedArgsList{:});
          
          namedArgs = p.Results;
+         if isempty(funcs)
+            namedArgs.new = unnamedArgs{:};
+         end
       end
       
       function fInput = formatInput(func,m,n,input,replicateInput)
@@ -236,7 +243,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
          end
       end
       
-      function [a,b] = interceptParams(names,list)
+      function [a,b] = interceptParams(list,names)
          % Pull out expected name/value parameter pairs. Everything else is
          % treated as an input to cell/arrayfun
          % names = {'UniformOutput' 'uni' 'ErrorHandler' 'replicateInput'};
