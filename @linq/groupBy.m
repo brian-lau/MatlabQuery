@@ -8,9 +8,18 @@ if nargin < 4
 end
 
 qkey = linq(self.array);
-key = qkey.select(keySelector).toArray; % will bomb for cells...
+key = qkey.select(keySelector).toArray;
 
-[key,~,IC] = unique(key,'stable');
+if isstruct(key)
+   fnames = fieldnames(key);
+   temp = [];
+   for i = 1:numel(fnames)
+      temp = [temp , cat(1,key.(fnames{i}))];
+   end
+   keyboard
+else
+   [key,~,IC] = unique(key,'stable');
+end
 
 for i = 1:numel(key)
    ind = IC == i;

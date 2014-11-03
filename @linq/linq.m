@@ -185,6 +185,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
          
          namedArgs = p.Results;
          if isempty(funcs)
+            % FIXME, should empty unnamedArgs
             namedArgs.new = unnamedArgs{:};
          end
       end
