@@ -21,6 +21,11 @@
 function output = elementAt(self,ind)
 
 if iscell(self.array)
+   if numel(ind) > 1
+      output = cell(1,numel(ind));
+      [output{:}] = deal(self.array{ind});
+      return
+   end
    output = self.array{ind};
 else
    output = self.array(ind);
