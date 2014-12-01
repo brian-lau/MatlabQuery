@@ -55,18 +55,31 @@ func = checkFunc(funcs{1});
 funcArgs = linq.formatInput(self.func,self.size(1),self.size(2),...
    funcArgs,namedArgs.replicateInput);
 
-if (nargin(func)==2) && isempty(funcArgs)
-   % Index is passed through
-   if iscell(self.array)
-      index = num2cell(1:self.count);
+try
+   if (nargin(func)==2) && isempty(funcArgs)
+      % Index is passed through
+      if iscell(self.array)
+         index = num2cell(1:self.count);
+      else
+         index = 1:self.count;
+      end
+      array = self.func(func,self.array,index,...
+         'UniformOutput',namedArgs.UniformOutput);
    else
-      index = 1:self.count;
+      array = self.func(func,self.array,funcArgs{:},...
+         'UniformOutput',namedArgs.UniformOutput);
    end
-   array = self.func(func,self.array,index,...
-      'UniformOutput',namedArgs.UniformOutput);
-else
-   array = self.func(func,self.array,funcArgs{:},...
-      'UniformOutput',namedArgs.UniformOutput);
+   self.place(array);
+catch err
+   if strcmp(err.identifier,'MATLAB:arrayfun:NotAScalarOutput') ||...
+         strcmp(err.identifier,'MATLAB:cellfun:NotAScalarOutput') ||...
+         strcmp(err.identifier,'MATLAB:cellfun:UnimplementedOutputArrayType') ||...
+         strcmp(err.identifier,'MATLAB:arrayfun:UnimplementedOutputArrayType')
+      if namedArgs.UniformOutput
+         result = self.func(func,self.array,funcArgs{:},...
+            'UniformOutput',false);
+         %warning('linq:select','UniformOutput set false');
+         self.place(result);
+      end
+   end
 end
-
-self.place(array);
