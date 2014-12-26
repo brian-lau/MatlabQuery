@@ -12,7 +12,7 @@ Download [MatlabQuery](https://github.com/brian-lau/MatlabQuery/archive/develop.
 add the `@linq` directory to your Matlab path.
 
 Install Steve Eddins's [xUnit test framework](http://www.mathworks.com/matlabcentral/fileexchange/22846-matlab-xunit-test-framework) 
- to run the unit tests.
+if you want to run the unit tests.
 
 # Examples
 ```
