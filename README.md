@@ -8,8 +8,8 @@ MatlabQuery is a class implementing similar methods for extracting and processin
 structure and object arrays.
 
 ## Installation
-Download [MatlabQuery](https://github.com/brian-lau/MatlabQuery/archive/develop.zip), 
-add the `@linq` directory to your Matlab path, and you're ready to go.
+Download [MatlabQuery](https://github.com/brian-lau/MatlabQuery/archive/develop.zip) and
+add the `@linq` directory to your Matlab path.
 
 Install Steve Eddins's [xUnit test framework](http://www.mathworks.com/matlabcentral/fileexchange/22846-matlab-xunit-test-framework) 
  to run the unit tests.
