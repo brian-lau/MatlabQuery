@@ -128,7 +128,7 @@ classdef(CaseInsensitiveProperties, TruncatedProperties) linq < handle
       self = distinct(self)
             
       function B = subsref(self,S)
-         % Handle the first indexing on object itself
+         % Handle the first indexing on object itself, shorcut place()
          switch S(1).type
             case '()'
                self.place(S(1).subs{:});
