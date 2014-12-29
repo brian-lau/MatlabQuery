@@ -59,21 +59,21 @@ Work is in progress to implement all the standard LINQ operators.
 |--------------|--------------|---|
 | AsEnumerable |              | |
 | Cast         |              | |
-| OfType       | ofType       | Filters the elements of a sequence based on a type |
-| ToArray      | toArray      | Creates an array from a sequence |
-| ToDictionary | toDictionary | Creates a dictionary from a sequence |
-| ToList       | toList       | Creates a cell array from a sequence |
+| OfType       | ofType       | Filter the elements of a sequence based on a type |
+| ToArray      | toArray      | Create an array from a sequence |
+| ToDictionary | toDictionary | Create a dictionary from a sequence |
+| ToList       | toList       | Create a cell array from a sequence |
 
 ## Element
 | LINQ               | Matlab         | |
 |--------------------|----------------|---|
 | DefaultIfEmpty     |                | |
-| ElementAt          | elementAt      | Returns element at a given index in a sequence |
+| ElementAt          | elementAt      | Return element at a given index in a sequence |
 | ElementAtOrDefault |                | |
-| First              | first          | Returns first element of sequence |
-| FirstOrDefault     | firstOrDefault | Returns first element of sequence, or default|
-| Last               | last           | Returns last element of sequence|
-| LastOrDefault      | lastOrDefault  | Returns last element of sequence, or default|
+| First              | first          | Return first element of sequence |
+| FirstOrDefault     | firstOrDefault | Return first element of sequence, or default|
+| Last               | last           | Return last element of sequence|
+| LastOrDefault      | lastOrDefault  | Return last element of sequence, or default|
 | Single             |                | |
 | SingleOrDefault    |                | |
 
@@ -110,10 +110,10 @@ Work is in progress to implement all the standard LINQ operators.
 ## Partition
 | LINQ      | Matlab    | |
 |-----------|-----------|---|
-| Skip      | skip      | Skips elements from a sequence yielding the remainder |
-| SkipWhile | skipWhile | Skips elements satisfying condition, yielding the remainder |
-| Take      | take      | Takes elements from a sequence skipping the remainder |
-| TakeWhile | takeWhile | Takes elements satisfying condition, skipping the remainder |
+| Skip      | skip      | Skip elements from a sequence yielding the remainder |
+| SkipWhile | skipWhile | Skip elements satisfying condition, yielding the remainder |
+| Take      | take      | Take elements from a sequence skipping the remainder |
+| TakeWhile | takeWhile | Take elements satisfying condition, skipping the remainder |
 
 ## Projection
 | LINQ       | Matlab     | |
@@ -124,19 +124,19 @@ Work is in progress to implement all the standard LINQ operators.
 ## Quantifiers
 | LINQ     | Matlab   | |
 |----------|----------|---|
-| All      | all      | Checks if all elements of a sequence satisfy a condition |
-| Any      | any      | Checks if any element of a sequence satisfies a condition |
-| Contains | contains | Checks if a sequence contains a given element |
+| All      | all      | Check if all elements of a sequence satisfy a condition |
+| Any      | any      | Check if any element of a sequence satisfies a condition |
+| Contains | contains | Check if a sequence contains a given element |
 
 ## Restriction
 | LINQ  | Matlab | |
 |-------|--------|---|
-| Where | where  | Yields elements where the predicate function returns true |
+| Where | where  | Yield elements where the predicate function returns true |
 
 ## Set
 | LINQ      | Matlab   | |
 |-----------|----------|---|
-| Distinct  | distinct | Yields unique sequence |
+| Distinct  | distinct | Yield unique sequence |
 | Except    |          | |
 | Intersect |          | |
 | Union     |          | |
