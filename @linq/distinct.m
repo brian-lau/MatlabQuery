@@ -22,7 +22,9 @@
 %   also allow passing in custom comparer
 function self = distinct(self)
 
-if ~ismethod(self.array,'unique')
+if islogical(self.array)
+   self.array = unique(self.array,'stable');
+elseif ~ismethod(self.array,'unique')
    error('linq:distinct:InputType',...
       'Unique method does not exist for class %s',class(self.array));
 end
